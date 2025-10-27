@@ -1,0 +1,28 @@
+# LangChain Core Dependencies
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+
+# LangGraph for building stateful multi-actor applications
+langgraph>=0.1.0
+
+# Google Gemini Integration
+langchain-google-genai>=1.0.0
+google-generativeai>=0.3.0
+
+# Additional helpful dependencies
+python-dotenv>=1.0.0  # for environment variables
+pydantic>=2.0.0       # for data validation
+requests>=2.31.0      # for HTTP requests
+typing-extensions>=4.5.0  # for type hints
+
+# DB2 Database Dependencies
+ibm-db>=3.1.0         # IBM DB2 driver for Python
+sqlalchemy>=2.0.0     # SQL toolkit and ORM
+pandas>=2.0.0         # for data manipulation and analysis
+psycopg2-binary>=2.9.0
+
+# Optional but recommended
+streamlit>=1.28.0     # for web interface (if building a UI)
+fastapi>=0.104.0      # for API development (if building APIs)
+uvicorn>=0.24.0       # ASGI server for FastAPI
