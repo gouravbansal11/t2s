@@ -1,0 +1,277 @@
+﻿from langchain_core.runnables import RunnableLambda, RunnableMap
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+import json
+
+# Agent Configuration - Source of Truth
+
+# ============================================================================AGENT_CONFIG = {
+
+# AGENT CONFIGURATION - Source of Truth    "unit_hier_agent": {
+
+# ============================================================================        "display_name": "Unit Agent",
+
+# This is the single source of truth for all available agents.        "description": "Specializes in queries about stores, branches, organizational units, their hierarchy, regional groupings",
+
+# When you add/remove agents, update only this configuration.        "tables": ["POC_UNIT_HIER"],
+
+        "keywords": ["unit", "store", "branch", "location", "hierarchy", "region", "district", "site", "address"]
+
+AGENT_CONFIG = {    },
+
+    "unit_hier_agent": {    "project_agent": {
+
+        "display_name": "Unit Hierarchy Agent",        "display_name": "Project Agent", 
+
+        "description": "Specializes in queries about stores, branches, organizational units, their hierarchy, regional groupings",        "description": "Specializes in queries concerning tasks, initiatives, work efforts, projects, their status, timelines, resources, execution details",
+
+        "tables": ["POC_UNIT_HIER"],        "tables": ["POC_PROJECT", "POC_PROJECT_EXECUTION"],
+
+        "keywords": ["unit", "store", "branch", "location", "hierarchy", "region", "district", "site", "address"]        "keywords": ["project", "initiative", "execution", "status", "timeline", "assignment", "schedule", "work", "deliverable", "milestone"]
+
+    },    },
+
+    "project_agent": {    "user_agent": {
+
+        "display_name": "Project Agent",         "display_name": "User Agent",
+
+        "description": "Specializes in queries concerning tasks, initiatives, work efforts, projects, their status, timelines, resources, execution details",        "description": "Specializes in queries about individuals, employees, users, their personal details, roles, permissions",
+
+        "tables": ["POC_PROJECT", "POC_PROJECT_EXECUTION"],        "tables": [],  # Not yet implemented
+
+        "keywords": ["project", "initiative", "execution", "status", "timeline", "assignment", "schedule", "work", "deliverable", "milestone"]        "keywords": ["user", "employee", "person", "role", "permission", "access", "login", "profile", "contact", "administrator", "staff"]
+
+    },    }
+
+    "user_agent": {}
+
+        "display_name": "User Agent",
+
+        "description": "Specializes in queries about individuals, employees, users, their personal details, roles, permissions",# Mapping from LLM output names to actual node names
+
+        "tables": [],  # Not yet implementedAGENT_NAME_MAPPING = {
+
+        "keywords": ["user", "employee", "person", "role", "permission", "access", "login", "profile", "contact", "administrator", "staff"]    "unit_agent": "unit_hier_agent",
+
+    }    "unit_hier_agent": "unit_hier_agent",
+
+}    "project_agent": "project_agent",
+
+    "project": "project_agent",
+
+# Mapping from LLM output names to actual node names    "user_agent": "user_agent",
+
+# This handles variations in how the LLM might name agents    "user": "user_agent",
+
+AGENT_NAME_MAPPING = {    "general_inquiry": "general_inquiry"
+
+    "unit_agent": "unit_hier_agent",}
+
+    "unit_hier_agent": "unit_hier_agent",
+
+    "project_agent": "project_agent",def get_available_agents():
+
+    "project": "project_agent",    """Returns list of currently implemented agents (excluding user_agent if not ready)"""
+
+    "user_agent": "user_agent",    return ["unit_hier_agent", "project_agent"]
+
+    "user": "user_agent",
+
+    "general_inquiry": "general_inquiry"def get_agent_tables():
+
+}    """Returns mapping of agents to their tables"""
+
+    return {
+
+def get_available_agents():        "unit_hier_agent": AGENT_CONFIG["unit_hier_agent"]["tables"],
+
+    """Returns list of currently implemented/active agents"""        "project_agent": AGENT_CONFIG["project_agent"]["tables"]
+
+    return ["unit_hier_agent", "project_agent"]    }
+
+
+
+def get_agent_tables():def map_agent_names(agent_list):
+
+    """Returns mapping of agents to their database tables    """Map LLM output agent names to actual node names"""
+
+        mapped = []
+
+    Returns:    for agent in agent_list:
+
+        dict: {agent_name: [table_names]}        mapped_name = AGENT_NAME_MAPPING.get(agent.lower(), agent)
+
+    """        if mapped_name in get_available_agents():
+
+    return {            mapped.append(mapped_name)
+
+        "unit_hier_agent": AGENT_CONFIG["unit_hier_agent"]["tables"],    return mapped if mapped else ["unit_hier_agent"]  # Default fallback
+
+        "project_agent": AGENT_CONFIG["project_agent"]["tables"]
+
+    }*   **User Query:** "What is the capital of France?"
+
+    *   **Output:** `["general_inquiry"]`
+
+def map_agent_names(agent_list):
+
+    """Map LLM output agent names to actual executable node names**Now, process the following user query:**
+
+                    """
+
+    Handles variations like:
+
+    - LLM returns "project" -> maps to "project_agent"system_message = SystemMessagePromptTemplate.from_template(system_message_content)
+
+    - LLM returns "unit_agent" -> maps to "unit_hier_agent"
+
+    human_message = HumanMessagePromptTemplate.from_template("""Given the query {user_query} , identify the best suited agent to handle the query.""")
+
+    Args:
+
+        agent_list: List of agent names from LLMprompt = ChatPromptTemplate.from_messages([system_message, human_message])
+
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+
+    Returns:
+
+        list: List of actual node names that exist in the graphtask = RunnableLambda(lambda x : x["user_query"])
+
+    """
+
+    mapped = []final_task = RunnableMap({
+
+    for agent in agent_list:    "user_query": task,
+
+        mapped_name = AGENT_NAME_MAPPING.get(agent.lower(), agent)    })
+
+        if mapped_name in get_available_agents():
+
+            mapped.append(mapped_name)chain = final_task | prompt | llm | StrOutputParser()
+
+    
+
+    # Default fallback if no agents mappeddef router_agent(query: str):
+
+    return mapped if mapped else ["unit_hier_agent"]    print("\n" + "="*80)
+
+    print("[ROUTER AGENT] Starting router agent")
+
+# ============================================================================    print("="*80)
+
+# LLM SYSTEM PROMPT - Router Agent    print(f"[ROUTER AGENT] Input Query: {query}")
+
+# ============================================================================    
+
+    try:
+
+system_message_content = """You are an intelligent router agent within a Text-to-SQL conversion system. Your sole responsibility is to accurately determine the most relevant agent(s) to handle a given user query.        result = chain.invoke({"user_query": query})
+
+        print(f"[ROUTER AGENT] LLM Response: {result}")
+
+**Here are the available agents and their domain expertise:**        print(f"[ROUTER AGENT] [SUCCESS] Router agent completed successfully")
+
+        print("="*80 + "\n")
+
+*   **Unit Hierarchy Agent:** Specializes in queries about stores, branches, organizational units, their hierarchy, regional groupings information.        return {"router_agent_response": result}
+
+    *   Keywords: unit, store, branch, location, hierarchy, region, district, site, address, organizational structure.    except Exception as e:
+
+        print(f"[ROUTER AGENT] [ERROR] Error during routing: {str(e)}")
+
+*   **Project Agent:** Specializes in queries concerning tasks, initiatives, work efforts, projects, their status, timelines, associated resources, execution details, and assignments to specific units or users.        print("="*80 + "\n")
+
+    *   Keywords: project, initiative, execution, status, timeline, assignment, schedule, work, deliverable, milestone.        raise
+
+
+
+*   **User Agent:** Specializes in queries about individuals, employees, users, their personal details, roles, permissions, access levels, authentication, and contact information.
+
+    *   Keywords: user, employee, person, role, permission, access, login, profile, contact, administrator, staff.
+
+**Your Process:**
+
+1. Analyze the User Query carefully
+2. Identify Core Entities/Concepts that relate to agent domains
+3. Map to Agent Expertise - determine which agent best handles each concept
+4. Select ALL Relevant Agents - a query can use multiple agents
+
+**Output Format:**
+
+You MUST return a JSON array of agent names: ["agent_name_1", "agent_name_2"]
+
+Valid agent names: "unit_hier_agent", "project_agent", "user_agent"
+
+If no agent is relevant, return: ["general_inquiry"]
+
+**Examples:**
+
+*   "Show me stores in North region" -> ["unit_hier_agent"]
+*   "What projects are assigned to Store 101?" -> ["project_agent", "unit_hier_agent"]
+*   "List users with Admin role" -> ["user_agent"]
+*   "How many projects per region?" -> ["project_agent", "unit_hier_agent"]
+"""
+
+system_message = SystemMessagePromptTemplate.from_template(system_message_content)
+
+human_message = HumanMessagePromptTemplate.from_template(
+    """Given the user query below, determine which agent(s) should handle it.
+
+User Query: {user_query}
+
+Return ONLY a JSON array of agent names. Valid names: "unit_hier_agent", "project_agent", "user_agent", "general_inquiry"
+"""
+)
+
+prompt = ChatPromptTemplate.from_messages([system_message, human_message])
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+
+task = RunnableLambda(lambda x: x["user_query"])
+
+final_task = RunnableMap({
+    "user_query": task,
+})
+
+chain = final_task | prompt | llm | StrOutputParser()
+
+def router_agent(query: str):
+    """Main router agent function
+    
+    Args:
+        query: User's natural language query
+        
+    Returns:
+        dict: {
+            "router_agent_response": str (LLM response),
+            "mapped_agents": list (actual node names)
+        }
+    """
+    print("\n" + "="*80)
+    print("[ROUTER AGENT] Starting router agent")
+    print("="*80)
+    print(f"[ROUTER AGENT] Input Query: {query}")
+    
+    try:
+        # Get LLM response
+        result = chain.invoke({"user_query": query})
+        print(f"[ROUTER AGENT] LLM Response: {result}")
+        
+        # Parse and map agent names
+        llm_agents = json.loads(result.strip('```json\n').strip('\n```'))
+        mapped_agents = map_agent_names(llm_agents)
+        
+        print(f"[ROUTER AGENT] Original LLM output: {llm_agents}")
+        print(f"[ROUTER AGENT] Mapped to node names: {mapped_agents}")
+        print(f"[ROUTER AGENT] [SUCCESS] Router agent completed successfully")
+        print("="*80 + "\n")
+        
+        return {
+            "router_agent_response": result,
+            "mapped_agents": mapped_agents
+        }
+    except Exception as e:
+        print(f"[ROUTER AGENT] [ERROR] Error during routing: {str(e)}")
+        print("="*80 + "\n")
+        raise
