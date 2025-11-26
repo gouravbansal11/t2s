@@ -93,6 +93,29 @@ def project_agent(state:AgentState):
         print(f"[MAIN] [ERROR] Project Agent Error: {str(e)}\n")
         raise
 
+def dimension_agent(state:AgentState):
+    """Extract dimension tables for lookup and enrichment"""
+    print(f"[MAIN] Invoking DIMENSION AGENT")
+    print(f"[MAIN] Tables to analyze: {table_dict.get('dimension_agent')}")
+    
+    try:
+        dimension_agent_response = table_extractor_graph.invoke(TableExtractorState(user_query = state.user_query, table_list = table_dict.get("dimension_agent")))
+        
+        subquestions_result = dimension_agent_response.get("subquestion_extractor_response", [])
+        columns_result = dimension_agent_response.get("selected_columns", [])
+        
+        print(f"[MAIN] [SUCCESS] Dimension Agent completed")
+        print(f"[MAIN]   |-- Subquestions: {len(subquestions_result)}")
+        print(f"[MAIN]   |-- Selected columns: {len(columns_result)}\n")
+        
+        return {
+            "subquestions": {"dimension_agent": subquestions_result},
+            "selected_columns": {"dimension_agent": columns_result}
+        }
+    except Exception as e:
+        print(f"[MAIN] [ERROR] Dimension Agent Error: {str(e)}\n")
+        raise
+
 def filter_check_agent(state: AgentState):
     """Check for filter requirements based on selected columns and user query"""
     print(f"[MAIN] Invoking FILTER CHECK AGENT")
@@ -178,6 +201,7 @@ stateGraph = StateGraph(AgentState)
 stateGraph.add_node("router", router)
 stateGraph.add_node("unit_hier_agent", unit_hier_agent)
 stateGraph.add_node("project_agent", project_agent)
+stateGraph.add_node("dimension_agent", dimension_agent)
 stateGraph.add_node("filter_check_agent", filter_check_agent)
 stateGraph.add_node("query_generator_agent", query_generator_agent)
 stateGraph.add_node("router_request", router_request)
@@ -187,6 +211,7 @@ stateGraph.add_edge(START, "router")
 stateGraph.add_conditional_edges("router", router_request, sql_agents)
 stateGraph.add_edge("unit_hier_agent", "filter_check_agent")
 stateGraph.add_edge("project_agent", "filter_check_agent")
+stateGraph.add_edge("dimension_agent", "filter_check_agent")
 stateGraph.add_edge("filter_check_agent", "query_generator_agent")
 stateGraph.add_edge("query_generator_agent", END)
 

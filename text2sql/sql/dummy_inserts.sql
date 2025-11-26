@@ -241,3 +241,35 @@ INSERT INTO POC_PROJECT_EXECUTION (
 (66, 20250930, 1, 20250930, 20250701, 20250710, 20250601, 17, 8, 'ST-2', 'PROJ-008', 20250930, 20250701, 20250930, 103, 109, 208, 508, 308, 3, 3, 1, 0, 0, 1, 1, 0, 0, 0, 0, '2025-07-01 00:00:00', '2025-09-30 00:00:00', '2025-09-30 00:00:00'),
 (67, 20251231, 1, 20251231, 20250801, 20250820, 20250701, 18, 9, 'ST-3', 'PROJ-009', 20251225, 20250801, 20251231, 104, 110, 209, 509, 309, 3, 4, 1, 0, 0, 1, 1, 0, 0, 0, 0, '2025-08-01 00:00:00', '2025-12-31 00:00:00', '2025-12-25 00:00:00'),
 (68, 20260630, 1, 20260630, 20250901, 20250915, 20250801, 19, 10, 'ST-4', 'PROJ-010', 20260615, 20250901, 20260630, 101, 111, 210, 510, 310, 3, 5, 1, 0, 0, 1, 1, 0, 0, 0, 0, '2025-09-01 00:00:00', '2026-06-30 00:00:00', '2026-06-15 00:00:00');
+
+-- ============================================================================
+-- POC_STATUS_D - Status Dimension Table
+-- ============================================================================
+-- Status codes used in POC_PROJECT_EXECUTION
+-- STATUS_SKEY values: 1=NOT STARTED, 3=IN PROGRESS, 4=REVIEW, 5=COMPLETED, 7=OVERDUE
+
+INSERT INTO POC_STATUS_D (
+    LOCALE_CODE,
+    STATUS_SKEY,
+    DOMAIN_ID,
+    STATUS_CODE,
+    STATUS_DESC
+) VALUES
+
+-- NOT STARTED - Execution not yet started
+('en-US', 1, 1, 'NOT_STARTED', 'Not Started'),
+
+-- IN PROGRESS - Execution is currently in progress
+('en-US', 3, 1, 'IN_PROGRESS', 'In Progress'),
+
+-- REVIEW - Execution is under review
+('en-US', 4, 1, 'REVIEW', 'Review'),
+
+-- COMPLETED - Execution has been successfully completed
+('en-US', 5, 1, 'COMPLETED', 'Completed'),
+
+-- OVERDUE - Execution has exceeded the scheduled finish date
+('en-US', 7, 1, 'OVERDUE', 'Overdue'),
+
+-- FORCED_COMPLETE - Execution was force completed before scheduled finish date
+('en-US', 6, 1, 'FORCED_COMPLETE', 'Forced Complete');

@@ -7,6 +7,7 @@ from agents.table_extractor.ColumnExtractorChain import generate_columnExtractor
 
 class TableExtractorState(BaseModel):
     user_query: str
+    agent_system_message: str = ""
     table_list: list[str]
     subquestion_extractor_response: list[list[str]] = []  # Default to an empty list
     selected_columns: list = []  # Store extracted columns
@@ -54,7 +55,7 @@ def subquestion_extractor(state: TableExtractorState) -> str:
     print(f"[TABLE EXTRACTOR - SUBQUESTION] [SUCCESS] Loaded metadata for {len(table_desc)} table(s)")
     
     try:
-        generate_subquestions_chain_res = generate_subquestions_chain.invoke({ "user_query": query, "table_desc": table_desc })
+        generate_subquestions_chain_res = generate_subquestions_chain.invoke({ "user_query": query, "table_desc": table_desc , "agent_system_message": state.agent_system_message })
         print(f"[TABLE EXTRACTOR - SUBQUESTION] LLM Response: {generate_subquestions_chain_res}")
         
         # Parse the response safely
@@ -147,7 +148,8 @@ def column_name_extractor(state: TableExtractorState) -> str:
                 generate_columnExtractor_chain_res = generate_columnExtractor_chain.invoke({
                     "user_query": state.user_query,
                     "sub_question": subquestion,
-                    "table_desc": table_metadata
+                    "table_desc": table_metadata,
+                    "agent_system_message": state.agent_system_message
                 })
                 print(f"[TABLE EXTRACTOR - COLUMN]   |  >> Extracted columns: {generate_columnExtractor_chain_res}")
                 selected_columns.append(generate_columnExtractor_chain_res)

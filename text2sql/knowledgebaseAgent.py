@@ -12,7 +12,25 @@ tables_descriptions = {
     'POC_UNIT_HIER' : ''' It contain the data about the units/store hierarchy. This also have the unit information.''',
     'POC_PROJECT' : ''' It contains the data about the projects, including project. One Project is assigned to one or multiple units/stores.''',
     'POC_PROJECT_EXECUTION' : ''' It contains the data about the projects executions. When any project assigned to any unit. One instance is 
-   #                               created of that for that unit, that one entry is stored in this table'''
+                                   created of that for that unit, that one entry is stored in this table''',
+    'POC_STATUS_D' : '''Dimension table for status reference and enrichment. Contains status codes and their human-readable descriptions.
+    Primary Use Cases:
+    - When users ask for "status descriptions" or "what statuses mean"
+    - When users need status names instead of codes for display/reporting
+    - For enriching fact tables (POC_PROJECT_EXECUTION, POC_PROJECT) with human-readable status information
+    - When users request "available statuses" or "status list"
+    
+    Lookup Mappings:
+    - STATUS_SKEY (identifier) joins with STATUS_SKEY in fact tables (POC_PROJECT_EXECUTION, POC_PROJECT)
+    - STATUS_CODE: Machine-readable code (e.g., 'COMPLETED', 'OVERDUE', 'IN_PROGRESS', 'REVIEW', 'NOT_STARTED', 'FORCED_COMPLETE')
+    - STATUS_DESC: Human-readable description for display and reporting
+    
+    Common Query Patterns:
+    - "Show me status descriptions" → SELECT STATUS_CODE, STATUS_DESC FROM POC_STATUS_D
+    - "Executions with status names" → JOIN POC_PROJECT_EXECUTION with POC_STATUS_D on STATUS_SKEY
+    - "What statuses are available?" → SELECT DISTINCT STATUS_CODE FROM POC_STATUS_D
+    
+    Data Isolation: Uses DOMAIN_ID and LOCALE_CODE to maintain data isolation across tenants and locales.'''
 }
 
 # Fetching records from database

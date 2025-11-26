@@ -76,6 +76,7 @@ Example 3: Overdue Project Percentage
   - Because: Need date comparison AND status filtering for the calculation
 """
 
+
 human_message_content = """ Identify the most relevant columns from the column list below to help answer the subquestion based on main question.
                             subquestion:
                             {sub_question}                         
@@ -95,13 +96,17 @@ final_task = RunnableMap({
     "table_desc": task3
 })
 
-
-prompt = getPrompt(system_message_content,human_message_content)
-
 # Wrap the chain with logging
 def generate_columnExtractor_with_logging(inputs):
     print(f"    [COLUMN EXTRACTOR CHAIN] Extracting columns for: {inputs['sub_question'][:60]}...")
+    
+    # ✅ Extract agent_system_message from inputs
+    agent_system_message = inputs.get("agent_system_message", "")
+    
     try:
+        # ✅ Create prompt dynamically with agent context
+        prompt = getPrompt(system_message_content, human_message_content, agent_system_message)
+        
         chain = final_task | prompt | llm | StrOutputParser()
         result = chain.invoke(inputs)
         print(f"    [COLUMN EXTRACTOR CHAIN] [SUCCESS] Columns extracted successfully")

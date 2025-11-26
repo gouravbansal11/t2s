@@ -1,7 +1,7 @@
 # Text2SQL - Project Documentation
 
 **Status:** ✅ Production Ready  
-**Last Updated:** November 22, 2025  
+**Last Updated:** November 26, 2025  
 **Overall Quality Grade:** A+ (Excellent)
 
 ---
@@ -38,6 +38,8 @@ Text2SQL is a **multi-agent text-to-SQL conversion system** using LangGraph that
 ✅ **Centralized Configuration** - Agent config in router agent  
 ✅ **Refactored Knowledge Base Agent** - Utility integration + expert prompts  
 ✅ **Enhanced Error Handling** - TableExtractorAgent with graceful degradation  
+✅ **Integrated Agent System Messages** - Dynamic prompts with agent context in chains  
+✅ **Refactored Dimension Agent** - Now generic like other agents with metadata-driven behavior  
 ✅ **Created Documentation** - This consolidated guide  
 
 ### Quality Metrics
@@ -293,7 +295,109 @@ agents = get_available_agents()  # Dynamic import
 tables = get_agent_tables('unit_hier_agent')
 ```
 
-### 6. Data Integrity Fixes
+### 6. Dimension Agent Refactoring
+
+**Files:** `main.py`, `knowledgebaseAgent.py`
+
+#### Problem Identified
+The `dimension_agent` didn't follow the same pattern as other specialized agents:
+
+**Before (Inconsistent):**
+```python
+def dimension_agent(state:AgentState):
+    # ❌ Hardcoded table-specific context
+    dimension_system_message = """You are the Dimension Agent, specializing..."""
+    
+    try:
+        # ❌ Passing agent_system_message directly
+        dimension_agent_response = table_extractor_graph.invoke(
+            TableExtractorState(
+                user_query=state.user_query, 
+                table_list=table_dict.get("dimension_agent"),
+                agent_system_message=dimension_system_message  # Not how other agents work
+            )
+        )
+```
+
+#### Solution: Consistent Generic Architecture
+All agents now follow identical pattern:
+
+**After (Consistent):**
+```python
+def dimension_agent(state:AgentState):
+    """Extract dimension tables for lookup and enrichment"""
+    try:
+        # ✅ Generic invocation like unit_hier_agent and project_agent
+        dimension_agent_response = table_extractor_graph.invoke(
+            TableExtractorState(
+                user_query = state.user_query, 
+                table_list = table_dict.get("dimension_agent")
+            )
+        )
+```
+
+#### Key Changes
+
+1. **main.py Changes:**
+   - Removed hardcoded `dimension_system_message` (15 lines)
+   - Removed `agent_system_message` parameter
+   - Now identical structure to other agents
+
+2. **knowledgebaseAgent.py Enhancement:**
+   - POC_STATUS_D description expanded (1 → 20+ lines)
+   - Added Primary Use Cases
+   - Added Lookup Mappings explanation
+   - Added Common Query Patterns
+   - Added Data Isolation info
+
+**Enhanced POC_STATUS_D Description:**
+```python
+'POC_STATUS_D' : '''Dimension table for status reference and enrichment...
+Primary Use Cases:
+- When users ask for "status descriptions" or "what statuses mean"
+- For enriching fact tables with human-readable status information
+- When users need status names instead of codes for display
+
+Lookup Mappings:
+- STATUS_SKEY joins with STATUS_SKEY in fact tables
+- STATUS_CODE: Machine-readable code (COMPLETED, OVERDUE, IN_PROGRESS, etc.)
+- STATUS_DESC: Human-readable description for display/reporting
+
+Common Query Patterns:
+- "Show me status descriptions" → SELECT from POC_STATUS_D
+- "Executions with status names" → JOIN with POC_STATUS_D
+- "What statuses are available?" → SELECT DISTINCT STATUS_CODE
+'''
+```
+
+#### Benefits
+- ✅ **Consistency:** All agents follow identical architecture
+- ✅ **Separation of Concerns:** Table knowledge in knowledgebaseAgent.py
+- ✅ **Scalability:** Adding new dimensions requires only updating knowledgebaseAgent.py
+- ✅ **Maintainability:** No scattered hardcoded strings
+- ✅ **Knowledge-Driven:** LLM decisions based on metadata
+
+#### How It Works Now
+1. Router invokes dimension_agent (generic function)
+2. TableExtractorAgent loads POC_STATUS_D metadata from knowledgebaseAgent.py
+3. SubQueryExtractorChain uses metadata to identify relevant tables
+4. ColumnExtractorChain uses metadata to select appropriate columns
+5. Result: Accurate decisions driven by knowledge base
+
+#### Adding New Dimension Tables (Future)
+```python
+# Only change needed: Update knowledgebaseAgent.py
+tables_descriptions = {
+    # ... existing tables ...
+    'DEPARTMENT_D' : '''Dimension table mapping department codes to descriptions...
+    Primary Use Cases: ...
+    Common Query Patterns: ...
+    '''
+    # Dimension_agent automatically works with new table!
+}
+```
+
+### 7. Data Integrity Fixes
 
 **File:** `sql/dummy_inserts.sql`
 

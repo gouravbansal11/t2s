@@ -104,13 +104,17 @@ final_task = RunnableMap({
     "table_desc": task2
 })
 
-
-prompt = getPrompt(system_message_content,human_message_content)
-
 # Wrap the chain with logging
 def generate_subquestions_with_logging(inputs):
     print(f"  [SUBQUESTION CHAIN] Processing user query and table descriptions...")
+    
+    # ✅ Extract agent_system_message from inputs
+    agent_system_message = inputs.get("agent_system_message", "")
+    
     try:
+        # ✅ Create prompt dynamically with agent context
+        prompt = getPrompt(system_message_content, human_message_content, agent_system_message)
+        
         chain = final_task | prompt | llm | StrOutputParser()
         result = chain.invoke(inputs)
         print(f"  [SUBQUESTION CHAIN] [SUCCESS] Subquestions generated successfully")

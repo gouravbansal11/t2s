@@ -23,6 +23,12 @@ AGENT_CONFIG = {
         "tables": ["POC_PROJECT", "POC_PROJECT_EXECUTION"],
         "keywords": ["project", "initiative", "execution", "status", "timeline", "assignment", "schedule", "work", "deliverable", "milestone"]
     },
+    "dimension_agent": {
+        "display_name": "Dimension Agent",
+        "description": "Specializes in queries about lookup reference data, status descriptions, human-readable codes, and data enrichment from dimension tables",
+        "tables": ["POC_STATUS_D"],
+        "keywords": ["status", "description", "code", "lookup", "reference", "meaning", "what is", "explain", "human-readable"]
+    },
     "user_agent": {
         "display_name": "User Agent",
         "description": "Specializes in queries about individuals, employees, users, their personal details, roles, permissions",
@@ -36,6 +42,11 @@ AGENT_NAME_MAPPING = {
     "unit_hier_agent": "unit_hier_agent",
     "project_agent": "project_agent",
     "project": "project_agent",
+    "dimension_agent": "dimension_agent",
+    "dimension": "dimension_agent",
+    "lookup": "dimension_agent",
+    "reference": "dimension_agent",
+    "status": "dimension_agent",
     "user_agent": "user_agent",
     "user": "user_agent",
     "general_inquiry": "general_inquiry"
@@ -43,13 +54,14 @@ AGENT_NAME_MAPPING = {
 
 def get_available_agents():
     """Returns list of currently implemented/active agents"""
-    return ["unit_hier_agent", "project_agent"]
+    return ["unit_hier_agent", "project_agent", "dimension_agent"]
 
 def get_agent_tables():
     """Returns mapping of agents to their database tables"""
     return {
         "unit_hier_agent": AGENT_CONFIG["unit_hier_agent"]["tables"],
-        "project_agent": AGENT_CONFIG["project_agent"]["tables"]
+        "project_agent": AGENT_CONFIG["project_agent"]["tables"],
+        "dimension_agent": AGENT_CONFIG["dimension_agent"]["tables"]
     }
 
 def map_agent_names(agent_list):
@@ -71,16 +83,22 @@ system_message_content = """You are an intelligent router agent within a Text-to
 *   **Project Agent:** Specializes in queries concerning tasks, initiatives, work efforts, projects, their status, timelines, resources, execution details.
     *   Keywords: project, initiative, execution, status, timeline, assignment, schedule, work, deliverable, milestone.
 
+*   **Dimension Agent:** Specializes in queries about lookup reference data, status descriptions, human-readable codes, and data enrichment.
+    *   Keywords: status, description, code, lookup, reference, meaning, what is, explain, human-readable.
+    *   Use when: User asks for "Show me statuses", "What does status 5 mean?", or needs enrichment data.
+
 *   **User Agent:** Specializes in queries about individuals, employees, users, their personal details, roles, permissions.
     *   Keywords: user, employee, person, role, permission, access, login, profile, contact, administrator, staff.
 
 **Output Format:**
 Return ONLY a JSON array of agent names: ["agent_name_1", "agent_name_2"]
-Valid names: "unit_hier_agent", "project_agent", "user_agent", "general_inquiry"
+Valid names: "unit_hier_agent", "project_agent", "dimension_agent", "user_agent", "general_inquiry"
 
 **Examples:**
 *   "Show me stores in North region" -> ["unit_hier_agent"]
 *   "What projects are assigned to Store 101?" -> ["project_agent", "unit_hier_agent"]
+*   "Show project executions with status descriptions" -> ["project_agent", "dimension_agent"]
+*   "What are the available status codes?" -> ["dimension_agent"]
 *   "List users with Admin role" -> ["user_agent"]
 """
 
