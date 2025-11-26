@@ -2,8 +2,8 @@ from langgraph.graph import StateGraph,START,END
 from pydantic import BaseModel
 import pickle
 
-from agents.table_extractor.SubQueryExtractorChain import generate_subquestions_chain
-from agents.table_extractor.ColumnExtractorChain import generate_columnExtractor_chain
+from agents.query_generator_agents.table_extractor.SubQueryExtractorChain import generate_subquestions_chain
+from agents.query_generator_agents.table_extractor.ColumnExtractorChain import generate_columnExtractor_chain
 
 class TableExtractorState(BaseModel):
     user_query: str

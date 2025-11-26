@@ -1,0 +1,172 @@
+# Agent Extraction - Quick Decision Guide
+
+## Question
+"Should we extract agents from main.py into separate files?"
+
+## Answer
+**YES, absolutely!** ✅
+
+---
+
+## Why Extract Agents?
+
+| Problem | Impact | Solution |
+|---------|--------|----------|
+| main.py = 240 lines | Hard to navigate | Extract to 50 lines |
+| Agents mixed with orchestration | Confusing code | Separate concerns |
+| Hard to test agents | Low test coverage | Isolated modules |
+| Difficult to add agents | Slow development | Create new files |
+| Violates Single Responsibility | Technical debt | Focused modules |
+
+---
+
+## Quick Comparison
+
+### Current (❌ Not Ideal)
+```
+main.py (240 lines)
+├── router()
+├── unit_hier_agent()     ← 20 lines embedded
+├── project_agent()       ← 20 lines embedded
+├── dimension_agent()     ← 20 lines embedded
+├── filter_check_agent()  ← 20 lines embedded
+├── query_generator_agent() ← 30 lines embedded
+└── StateGraph + pipeline logic
+```
+
+### Proposed (✅ Better)
+```
+main.py (50 lines)
+├── Imports
+├── State definition
+├── Orchestration (thin)
+└── Graph building
+
+agents/specialized_agents/
+├── unit_hier_agent.py      (20 lines)
+├── project_agent.py        (20 lines)
+├── dimension_agent.py      (20 lines)
+└── filter_check_agent.py   (20 lines)
+
+agents/pipeline_agents/
+└── query_generator_agent.py (30 lines)
+```
+
+---
+
+## Benefits
+
+✅ **Code Quality** - main.py reduced 79% (240 → 50 lines)  
+✅ **Testability** - Each agent can be tested independently  
+✅ **Maintainability** - Find code easily, update in isolation  
+✅ **Scalability** - Add new agents without touching main.py  
+✅ **Professionalism** - Industry standard architecture  
+
+---
+
+## Effort vs Benefit
+
+| Aspect | Effort | Benefit |
+|--------|--------|---------|
+| Extract existing agents | 1-2 hours | Huge - cleaner codebase |
+| Add new agents after | 30 mins/agent | Huge - isolated development |
+| Testing | Low | High - focused units |
+| Maintenance | Low | High - organized structure |
+
+**ROI: Very High** ✅
+
+---
+
+## Example: Adding Chart Recommendation Agent
+
+### Without Refactoring (❌)
+```python
+# Edit main.py
+def chart_recommendation_agent(state):
+    # ... 20+ lines ...
+    
+# Add to graph
+stateGraph.add_node(...)
+stateGraph.add_edge(...)
+
+# Result: main.py now 260+ lines, harder to maintain
+```
+
+### With Refactoring (✅)
+```python
+# Create: agents/pipeline_agents/chart_recommendation_agent.py (25 lines)
+# Update: agents/pipeline_agents/__init__.py (1 line)
+# Update: main.py (3 lines)
+
+# Result: main.py stays ~50 lines, clean separation
+```
+
+---
+
+## Implementation Timeline
+
+**Phase 1 (1-2 hours):** Extract existing agents
+- Create directory structure
+- Move agents to separate files
+- Update imports
+- Test everything works
+
+**Phase 2 (Ongoing, 30 min per agent):** Add new agents easily
+- Create new agent file
+- Add to __init__.py
+- Update main.py with minimal changes
+- Done!
+
+---
+
+## Recommendation
+
+**DO THIS REFACTORING NOW** before adding chart agent:
+
+1. ✅ Creates cleaner foundation
+2. ✅ Makes adding new agents trivial
+3. ✅ Improves code quality significantly
+4. ✅ Follows professional patterns
+5. ✅ Worth the 1-2 hour effort
+
+---
+
+## Next Steps
+
+1. Read ARCHITECTURE_REFACTORING_PLAN.md for detailed guide
+2. Review AGENT_EXTRACTION_RECOMMENDATION.md for full context
+3. Start extraction:
+   - Create directory structure
+   - Extract unit_hier_agent.py
+   - Extract project_agent.py
+   - Extract dimension_agent.py
+   - Extract filter_check_agent.py
+   - Extract query_generator_agent.py
+   - Refactor main.py
+4. Test thoroughly
+5. Add chart recommendation agent easily
+
+---
+
+## Files to Create
+
+```
+agents/specialized_agents/
+  ├── __init__.py
+  ├── unit_hier_agent.py
+  ├── project_agent.py
+  ├── dimension_agent.py
+  └── filter_check_agent.py
+
+agents/pipeline_agents/
+  ├── __init__.py
+  └── query_generator_agent.py
+```
+
+---
+
+## Verdict
+
+**Extract Agents: HIGHLY RECOMMENDED** ✅
+
+This is a smart architectural decision that will pay dividends as the system grows!

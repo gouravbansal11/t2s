@@ -1,17 +1,25 @@
 from pydantic import BaseModel
 from typing import Annotated
 from agents.routerAgent import router_agent, get_available_agents, get_agent_tables
+from agents.ui_generator_agents.uiSelectorAgent import ui_selector_agent_impl
 from langgraph.graph import StateGraph, START, END
-from agents.table_extractor.TableExtractorAgent import table_extractor_graph
-from agents.table_extractor.TableExtractorAgent import TableExtractorState
-from agents.filter_check_chain import check_filter_agent_chain
-from agents.generate_query_chain import generate_sql_query_chain
 from utils.stateReducers import merge_dicts
-import pickle
+
+# Import table extraction agents
+from agents.query_generator_agents.tables_agents import (
+    unit_hier_agent as unit_hier_agent_impl,
+    project_agent as project_agent_impl,
+    dimension_agent as dimension_agent_impl,
+    filter_check_agent as filter_check_agent_impl,
+)
+
+# Import query generator agents
+from agents.query_generator_agents import query_generator_agent as query_generator_agent_impl
 
 # Get agent configuration from router agent (single source of truth)
 sql_agents = get_available_agents()
 table_dict = get_agent_tables()
+
 
 class AgentState(BaseModel):
     user_query: str = ""
@@ -20,220 +28,98 @@ class AgentState(BaseModel):
     selected_columns: Annotated[dict, merge_dicts] = {}  # ✅ Handles concurrent updates
     filters: list = []  # Stores filter conditions
     generated_query: str = ""  # Final SQL query
+    ui_components: dict = {}  # Stores UI components
 
-import json
-def router(state:AgentState):
+
+def router(state: AgentState):
+    """Route query to appropriate agents based on keywords"""
     query = state.user_query
-    print("\n" + "#"*80)
-    print("# [MAIN ORCHESTRATION] Starting Text-to-SQL Pipeline")
-    print("#"*80)
-    print(f"[MAIN] User Query: {query}\n")
+    print("\n" + "#" * 80)
+    print("# [ORCHESTRATION] Starting Text-to-SQL Pipeline")
+    print("#" * 80)
+    print(f"[ORCHESTRATION] User Query: {query}\n")
     
     try:
         result = router_agent(query)
-        # Use mapped_agents directly from router
         mapped_agents = result.get('mapped_agents', [])
         state.router_response = mapped_agents
-        print(f"[MAIN] [SUCCESS] Router Response (mapped): {mapped_agents}")
-        print(f"[MAIN] >> Selected Agents: {mapped_agents}\n")
+        print(f"[ORCHESTRATION] [SUCCESS] Routing complete: {mapped_agents}\n")
         return state
     except Exception as e:
-        print(f"[MAIN] [ERROR] Router Error: {str(e)}\n")
+        print(f"[ORCHESTRATION] [ERROR] Router Error: {str(e)}\n")
         raise
 
 
-def router_request(state:AgentState):
+def router_request(state: AgentState):
+    """Return router response for conditional edges"""
     return state.router_response
 
-def unit_hier_agent(state:AgentState):
-    """Extract tables and columns relevant to unit hierarchy queries"""
-    print(f"\n[MAIN] Invoking UNIT HIERARCHY AGENT")
-    print(f"[MAIN] Tables to analyze: {table_dict.get('unit_hier_agent')}")
-    
-    try:
-        unit_hier_agent_response = table_extractor_graph.invoke(TableExtractorState(user_query = state.user_query, table_list = table_dict.get("unit_hier_agent")))
-        
-        subquestions_result = unit_hier_agent_response.get("subquestion_extractor_response", [])
-        columns_result = unit_hier_agent_response.get("selected_columns", [])
-        
-        print(f"[MAIN] [SUCCESS] Unit Hierarchy Agent completed")
-        print(f"[MAIN]   |-- Subquestions: {len(subquestions_result)}")
-        print(f"[MAIN]   |-- Selected columns: {len(columns_result)}\n")
-        
-        # Return updates - reducer will merge with concurrent updates
-        return {
-            "subquestions": {"unit_hier_agent": subquestions_result},
-            "selected_columns": {"unit_hier_agent": columns_result}
-        }
-    except Exception as e:
-        print(f"[MAIN] [ERROR] Unit Hierarchy Agent Error: {str(e)}\n")
-        raise
 
-def project_agent(state:AgentState):
-    """Extract tables and columns relevant to project queries"""
-    print(f"[MAIN] Invoking PROJECT AGENT")
-    print(f"[MAIN] Tables to analyze: {table_dict.get('project_agent')}")
-    
-    try:
-        project_agent_response = table_extractor_graph.invoke(TableExtractorState(user_query = state.user_query, table_list = table_dict.get("project_agent")))
-        
-        subquestions_result = project_agent_response.get("subquestion_extractor_response", [])
-        columns_result = project_agent_response.get("selected_columns", [])
-        
-        print(f"[MAIN] [SUCCESS] Project Agent completed")
-        print(f"[MAIN]   |-- Subquestions: {len(subquestions_result)}")
-        print(f"[MAIN]   |-- Selected columns: {len(columns_result)}\n")
-        
-        # Return updates - reducer will merge with concurrent updates
-        return {
-            "subquestions": {"project_agent": subquestions_result},
-            "selected_columns": {"project_agent": columns_result}
-        }
-    except Exception as e:
-        print(f"[MAIN] [ERROR] Project Agent Error: {str(e)}\n")
-        raise
+def unit_hier_agent(state: AgentState):
+    """Wrapper for unit hierarchy agent"""
+    return unit_hier_agent_impl(state, table_dict)
 
-def dimension_agent(state:AgentState):
-    """Extract dimension tables for lookup and enrichment"""
-    print(f"[MAIN] Invoking DIMENSION AGENT")
-    print(f"[MAIN] Tables to analyze: {table_dict.get('dimension_agent')}")
-    
-    try:
-        dimension_agent_response = table_extractor_graph.invoke(TableExtractorState(user_query = state.user_query, table_list = table_dict.get("dimension_agent")))
-        
-        subquestions_result = dimension_agent_response.get("subquestion_extractor_response", [])
-        columns_result = dimension_agent_response.get("selected_columns", [])
-        
-        print(f"[MAIN] [SUCCESS] Dimension Agent completed")
-        print(f"[MAIN]   |-- Subquestions: {len(subquestions_result)}")
-        print(f"[MAIN]   |-- Selected columns: {len(columns_result)}\n")
-        
-        return {
-            "subquestions": {"dimension_agent": subquestions_result},
-            "selected_columns": {"dimension_agent": columns_result}
-        }
-    except Exception as e:
-        print(f"[MAIN] [ERROR] Dimension Agent Error: {str(e)}\n")
-        raise
+
+def project_agent(state: AgentState):
+    """Wrapper for project agent"""
+    return project_agent_impl(state, table_dict)
+
+
+def dimension_agent(state: AgentState):
+    """Wrapper for dimension agent"""
+    return dimension_agent_impl(state, table_dict)
+
 
 def filter_check_agent(state: AgentState):
-    """Check for filter requirements based on selected columns and user query"""
-    print(f"[MAIN] Invoking FILTER CHECK AGENT")
-    
-    # Combine all selected columns from all agents
-    all_columns = []
-    for agent_name, columns in state.selected_columns.items():
-        all_columns.extend(columns)
-    
-    print(f"[MAIN] Total columns available for filtering: {len(all_columns)}")
-    
-    if all_columns:
-        try:
-            filter_result = check_filter_agent_chain.invoke({
-                "user_query": state.user_query,
-                "columns": str(all_columns)
-            })
-            import ast
-            state.filters = ast.literal_eval(filter_result) if filter_result else []
-            print(f"[MAIN] [SUCCESS] Filter Check completed")
-            print(f"[MAIN]   |-- Filters applied: {state.filters}\n")
-        except Exception as e:
-            print(f"[MAIN] [ERROR] Filter Check Error: {str(e)}")
-            state.filters = []
-    else:
-        print(f"[MAIN] [INFO] No columns selected - skipping filter check")
-        state.filters = []
-    
-    return state
+    """Wrapper for filter check agent"""
+    return filter_check_agent_impl(state)
+
 
 def query_generator_agent(state: AgentState):
-    """Generate SQL query based on user query, subquestions, selected columns, and filters"""
-    print(f"[MAIN] Invoking SQL QUERY GENERATOR AGENT")
-    print(f"[MAIN] Selected columns: {len(state.selected_columns)} agent(s)")
-    print(f"[MAIN] Filters: {state.filters}")
-    
-    try:
-        # Load table schema from knowledgebase metadata
-        with open('knowledgebase_metadata.pkl', 'rb') as f:
-            metadata = pickle.load(f)
-        
-        # Build table schema from metadata
-        table_schema = "\n".join([
-            f"**{table_name}:**\n{description}"
-            for table_name, description in metadata.items()
-        ])
-        
-        print(f"[MAIN] Schema loaded: {len(metadata)} table(s)")
-        
-        # Flatten selected_columns: combine all column values from all agents
-        all_selected_columns = []
-        for agent_name, columns in state.selected_columns.items():
-            all_selected_columns.extend(columns)
-        
-        print(f"[MAIN] Total selected columns: {len(all_selected_columns)}")
-        
-        # Invoke SQL generation chain
-        sql_query = generate_sql_query_chain.invoke({
-            "user_query": state.user_query,
-            "selected_columns": str(all_selected_columns),
-            "filters": str(state.filters),
-            "table_schema": table_schema
-        })
-        
-        state.generated_query = sql_query
-        print(f"[MAIN] [SUCCESS] SQL Query Generator completed\n")
-        print(f"[MAIN] ================================================================================")
-        print(f"[MAIN] FINAL GENERATED QUERY:")
-        print(f"[MAIN] {state.generated_query}")
-        print(f"[MAIN] ================================================================================\n")
-        
-    except Exception as e:
-        print(f"[MAIN] [ERROR] SQL Query Generator Error: {str(e)}\n")
-        state.generated_query = ""
-    
-    return state
+    """Wrapper for query generator agent"""
+    return query_generator_agent_impl(state)
 
 
+def ui_selector_agent(state):
+    """Wrapper for UI Selector Agent"""
+    return ui_selector_agent_impl(state)
 
-stateGraph = StateGraph(AgentState)
 
-# Add nodes with string names
-stateGraph.add_node("router", router)
-stateGraph.add_node("unit_hier_agent", unit_hier_agent)
-stateGraph.add_node("project_agent", project_agent)
-stateGraph.add_node("dimension_agent", dimension_agent)
-stateGraph.add_node("filter_check_agent", filter_check_agent)
-stateGraph.add_node("query_generator_agent", query_generator_agent)
-stateGraph.add_node("router_request", router_request)
+# Build StateGraph
+state_graph = StateGraph(AgentState)
+state_graph.add_node("router", router)
+state_graph.add_node("unit_hier_agent", unit_hier_agent)
+state_graph.add_node("project_agent", project_agent)
+state_graph.add_node("dimension_agent", dimension_agent)
+state_graph.add_node("filter_check_agent", filter_check_agent)
+state_graph.add_node("query_generator_agent", query_generator_agent)
+state_graph.add_node("ui_selector_agent", ui_selector_agent)
 
-# Add edges
-stateGraph.add_edge(START, "router")
-stateGraph.add_conditional_edges("router", router_request, sql_agents)
-stateGraph.add_edge("unit_hier_agent", "filter_check_agent")
-stateGraph.add_edge("project_agent", "filter_check_agent")
-stateGraph.add_edge("dimension_agent", "filter_check_agent")
-stateGraph.add_edge("filter_check_agent", "query_generator_agent")
-stateGraph.add_edge("query_generator_agent", END)
+state_graph.add_edge(START, "router")
+state_graph.add_conditional_edges("router", router_request, sql_agents)
+state_graph.add_edge("unit_hier_agent", "filter_check_agent")
+state_graph.add_edge("project_agent", "filter_check_agent")
+state_graph.add_edge("dimension_agent", "filter_check_agent")
+state_graph.add_edge("filter_check_agent", "query_generator_agent")
+state_graph.add_edge("query_generator_agent", "ui_selector_agent")
+state_graph.add_edge("ui_selector_agent", END)
 
-stateGraphFinal = stateGraph.compile()
+state_graph_final = state_graph.compile()
 
-# Execute the pipeline with final logging
+# Execute pipeline
 print("\n" + "=" * 80)
-print("STARTING TEXT-TO-SQL CONVERSION PIPELINE")
+print("TEXT-TO-SQL CONVERSION PIPELINE")
 print("=" * 80 + "\n")
 
-result = stateGraphFinal.invoke(AgentState(user_query = input("Enter the query:  ")))
+result = state_graph_final.invoke(AgentState(user_query=input("Enter the query: ")))
 
 print("\n" + "=" * 80)
 print("PIPELINE EXECUTION COMPLETED")
 print("=" * 80 + "\n")
+
+# Handle both dict and object responses
 if isinstance(result, dict):
     print(f"Final Generated Query:\n{result.get('generated_query', 'No query generated')}\n")
 else:
     print(f"Final Generated Query:\n{result.generated_query}\n")
-
-#from IPython.display import Image, display
-
-# Assuming 'graph' is your compiled LangGraph object
-#display(Image(stateGraphFinal.get_graph().draw_mermaid_png()))
 

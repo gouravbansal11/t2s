@@ -1,2 +1,65 @@
 Query= Return me count of overdue project store wise for all the  distict level store
 Response= 
+            Select
+                uh.unit_id,
+                SUM(pe.num_o_projects) as overdue_project_count
+            from
+                POC_PROJECT_EXECUTION pe
+            inner join POC_UNIT_HIER uh on
+                pe.unit_skey = uh.unit_skey
+                and pe.domain_id = uh.domain_id
+            where
+                pe.num_o_projects = 1
+                and uh.store_level_flag = 1
+            group by
+                uh.unit_id
+            order by
+                uh.unit_id
+
+
+Query= Give me count of project according to the status and as per unit for district level unit.
+Response= 
+            Select
+                uh.unit_name,
+                sd.status_desc,
+                COUNT(pe.execution_skey) as project_count
+            from
+                POC_PROJECT_EXECUTION pe
+            inner join POC_UNIT_HIER uh on
+                pe.unit_skey = uh.unit_skey
+                and 	pe.domain_id = uh.domain_id
+            inner join POC_STATUS_D sd on
+                pe.status_skey = sd.status_skey
+                and pe.domain_id = sd.domain_id
+            where
+                uh.unit_org_level = 4
+            group by
+                uh.unit_name,
+                sd.status_desc
+            order by
+                uh.unit_name,
+                sd.status_desc
+
+
+Query = Give me count of project according to the status and as per unit for all the store level units
+Response= 
+            select
+                uh.unit_name,
+                sd.status_desc,
+                COUNT(pe.execution_skey) as project_count
+            from
+                POC_PROJECT_EXECUTION pe
+            inner join POC_UNIT_HIER uh on
+                pe.unit_skey = uh.unit_skey
+                and pe.domain_id = uh.domain_id
+            inner join POC_STATUS_D sd on
+                pe.status_skey = sd.status_skey
+                and pe.domain_id = sd.domain_id
+            where
+                uh.store_level_flag = 1
+            group by
+                uh.unit_name,
+                sd.status_desc
+            order by
+                uh.unit_name,
+                sd.status_desc
