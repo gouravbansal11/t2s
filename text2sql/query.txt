@@ -1,0 +1,2 @@
+Query= Return me count of overdue project store wise for all the  distict level store
+Response= 
