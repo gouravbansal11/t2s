@@ -97,6 +97,153 @@ Text2SQL is a **multi-agent text-to-SQL conversion system** that transforms natu
 
 ## System Architecture
 
+### Agents Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   TEXT-TO-SQL CONVERSION PIPELINE                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                          🚀 START: User Query
+                                  │
+                                  ▼
+                    ┌─────────────────────────────┐
+                    │    1️⃣ ROUTER AGENT         │
+                    │  (Identify relevant tables) │
+                    └──────────┬──────────────────┘
+                               │
+                    ┌──────────┴──────────┬──────────────┐
+                    │                     │              │
+                    ▼                     ▼              ▼
+        ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+        │ 2️⃣ UNIT HIER    │  │ 2️⃣ PROJECT      │  │ 2️⃣ DIMENSION   │
+        │    AGENT        │  │    AGENT        │  │    AGENT        │
+        │(Extract Unit    │  │(Extract Project)│  │(Extract Status) │
+        │ tables/columns) │  │                │  │                │
+        └────────┬────────┘  └────────┬───────┘  └────────┬────────┘
+                 │                    │                    │
+                 │       ┌────────────┴────────────┐      │
+                 │       │    TABLE EXTRACTOR     │      │
+                 │       │  ✓ Subquestion chain  │      │
+                 │       │  ✓ Column extraction  │      │
+                 │       │  ✓ 3-layer validation │      │
+                 │       └────────────┬───────────┘      │
+                 │                    │                   │
+                 └────────────────────┼───────────────────┘
+                                      │
+                        ┌─────────────▼──────────────┐
+                        │  Merge Results from 3      │
+                        │  Agents (Annotations)      │
+                        └─────────────┬──────────────┘
+                                      │
+                        ┌─────────────▼──────────────┐
+                        │ 3️⃣ FILTER CHECK AGENT    │
+                        │  • Validates filters      │
+                        │  • 6-step analysis       │
+                        │  • NO HALLUCINATION      │
+                        └─────────────┬──────────────┘
+                                      │
+                        ┌─────────────▼──────────────┐
+                        │ 4️⃣ SQL GENERATOR AGENT   │
+                        │  • Load knowledgebase     │
+                        │  • Build schema context   │
+                        │  • Generate SQL query     │
+                        │  • 10-second delay        │
+                        └─────────────┬──────────────┘
+                                      │
+                        ┌─────────────▼──────────────┐
+                        │ 5️⃣ UI SELECTOR AGENT     │
+                        │  • Analyze query intent   │
+                        │  • Recommend UI type      │
+                        │  • Return JSON config     │
+                        └─────────────┬──────────────┘
+                                      │
+                                      ▼
+                    ┌─────────────────────────────┐
+                    │   📊 FINAL OUTPUT           │
+                    │  ✓ SQL Query (ready to run) │
+                    │  ✓ UI Component (display)   │
+                    │  ✓ Configuration (settings) │
+                    └─────────────────────────────┘
+```
+
+### Detailed Agent Responsibilities
+
+#### **Agent 1: Router Agent** 🔀
+- **Input:** Natural language query
+- **Task:** Analyze query and identify which specialized agents should handle it
+- **Output:** List of agent names to invoke
+- **Location:** `agents/routerAgent.py`
+- **Config:** `AGENT_CONFIG` dictionary with agent metadata
+
+#### **Agent 2-4: Table Extraction Agents** (Parallel Execution) 📋
+**Unit Hierarchy Agent**
+- **Tables:** POC_UNIT_HIER
+- **Purpose:** Extract organizational hierarchy queries
+- **Output:** Subquestions + selected columns
+
+**Project Agent**
+- **Tables:** POC_PROJECT, POC_PROJECT_EXECUTION
+- **Purpose:** Extract project-related queries
+- **Output:** Subquestions + selected columns
+
+**Dimension Agent**
+- **Tables:** POC_STATUS_D (and other dimension tables)
+- **Purpose:** Extract dimension lookup queries
+- **Output:** Subquestions + selected columns
+
+**How They Work:**
+1. Each agent calls `TableExtractorAgent`
+2. Extract subquestions relevant to their tables
+3. Extract column names for selected tables
+4. 3-layer validation ensures data quality
+5. Results merged using Annotated dict reducer
+
+#### **Agent 3: Filter Check Agent** 🔍
+- **Input:** Combined columns from all agents
+- **Task:** Validate filter conditions with 6-step analysis
+  1. Understand context
+  2. Analyze syntax
+  3. Check data types
+  4. Logical consistency
+  5. Provide recommendations
+  6. Clear decision (VALID/INVALID)
+- **Output:** Validated filter list
+- **Location:** `agents/tables_agents/filter_check_agent.py`
+
+#### **Agent 4: SQL Query Generator** 🔨
+- **Input:** Columns, filters, table schema, user query
+- **Task:** Generate optimized SQL query
+- **Process:**
+  1. Load knowledgebase metadata
+  2. Build table schema context
+  3. Combine all information
+  4. Call LLM with expert prompts
+  5. Parse SQL output
+- **Output:** Complete SQL query ready for execution
+- **Special:** 10-second delay before invoke (rate limiting)
+- **Location:** `agents/query_generator_agents/query_generator_agent.py`
+
+#### **Agent 5: UI Selector Agent** 🎨
+- **Input:** User query + generated SQL
+- **Task:** Recommend best UI component for data visualization
+- **Decision Logic:**
+  - **TABLE:** Multiple columns, exact values important
+  - **BAR_CHART:** Comparing categories
+  - **LINE_CHART:** Time-series or trends
+  - **PIE_CHART:** Parts of whole (percentages)
+  - **SCATTER_PLOT:** Correlation analysis
+  - **HEATMAP:** 2D matrix visualization
+- **Output:** JSON with:
+  ```json
+  {
+    "recommended_component": "bar_chart",
+    "primary_reason": "Comparing across categories",
+    "suggested_fields": { "x_axis": "status", "y_axis": "count" }
+  }
+  ```
+- **Location:** `agents/ui_generator_agents/ui_selector_agent.py`
+
 ### Data Flow
 
 ```
@@ -148,6 +295,471 @@ Final SQL Query → Database Execution → Results
 - **utils/llmProvider.py** - Centralized LLM (Google Gemini 2.5 Flash)
 - **utils/promptProvider.py** - Centralized prompt builder
 - **utils/stateReducers.py** - State merging utilities
+
+---
+
+### State Transformation Flow
+
+#### **State Object (AgentState)**
+```python
+class AgentState(BaseModel):
+    user_query: str = ""                           # Input: User's natural language query
+    router_response: list[str] = []               # Router's agent selection
+    subquestions: dict = {}                       # Extracted subquestions from all agents
+    selected_columns: dict = {}                   # Extracted columns from all agents
+    filters: list = []                            # Validated filter conditions
+    generated_sql_query: str = ""                 # Final SQL query
+    ui_components: dict = {}                      # UI component recommendations
+```
+
+#### **State Transformations by Agent**
+
+```
+Stage 0: INPUT
+├─ user_query: "Give me count of projects by status for store level units"
+├─ router_response: []
+├─ subquestions: {}
+├─ selected_columns: {}
+├─ filters: []
+├─ generated_sql_query: ""
+└─ ui_components: {}
+
+           ↓ [Router Agent processes]
+
+Stage 1: ROUTING
+├─ user_query: "Give me count of projects by status for store level units"
+├─ router_response: ["project_agent", "dimension_agent", "unit_hier_agent"] ✅
+├─ subquestions: {}
+├─ selected_columns: {}
+├─ filters: []
+├─ generated_sql_query: ""
+└─ ui_components: {}
+
+           ↓ [3 Agents execute in parallel]
+
+Stage 2: TABLE EXTRACTION
+├─ user_query: "Give me count of projects by status for store level units"
+├─ router_response: ["project_agent", "dimension_agent", "unit_hier_agent"]
+├─ subquestions: {
+│    "project_agent": [["count of projects", "POC_PROJECT"]],
+│    "dimension_agent": [["project status", "POC_STATUS_D"]],
+│    "unit_hier_agent": [["store level units", "POC_UNIT_HIER"]]
+│  } ✅ MERGED with Annotated dict reducer
+├─ selected_columns: {
+│    "project_agent": ["project_skey", "status_skey", "creator_unit_skey"],
+│    "dimension_agent": ["status_code", "status_desc"],
+│    "unit_hier_agent": ["unit_name", "unit_org_level"]
+│  } ✅ MERGED with Annotated dict reducer
+├─ filters: []
+├─ generated_sql_query: ""
+└─ ui_components: {}
+
+           ↓ [Filter Check Agent validates]
+
+Stage 3: FILTER VALIDATION
+├─ user_query: "Give me count of projects by status for store level units"
+├─ router_response: ["project_agent", "dimension_agent", "unit_hier_agent"]
+├─ subquestions: {...}
+├─ selected_columns: {...}
+├─ filters: [
+│    "yes",
+│    ["POC_UNIT_HIER", "unit_org_level", 5]  ✅ Store level = org_level 5
+│  ]
+├─ generated_sql_query: ""
+└─ ui_components: {}
+
+           ↓ [SQL Generator Agent creates query]
+
+Stage 4: SQL GENERATION
+├─ user_query: "Give me count of projects by status for store level units"
+├─ router_response: ["project_agent", "dimension_agent", "unit_hier_agent"]
+├─ subquestions: {...}
+├─ selected_columns: {...}
+├─ filters: ["yes", ["POC_UNIT_HIER", "unit_org_level", 5]]
+├─ generated_sql_query: "SELECT u.unit_name, s.status_desc, COUNT(p.project_skey)..." ✅
+└─ ui_components: {}
+
+           ↓ [UI Selector Agent recommends component]
+
+Stage 5: UI SELECTION
+├─ user_query: "Give me count of projects by status for store level units"
+├─ router_response: ["project_agent", "dimension_agent", "unit_hier_agent"]
+├─ subquestions: {...}
+├─ selected_columns: {...}
+├─ filters: ["yes", ["POC_UNIT_HIER", "unit_org_level", 5]]
+├─ generated_sql_query: "SELECT u.unit_name, s.status_desc, COUNT(p.project_skey)..."
+└─ ui_components: {
+     "ui_selector_agent": "bar_chart"  ✅ Recommended for category comparison
+   }
+
+FINAL OUTPUT: Ready for execution and display!
+```
+
+---
+
+### Error Handling & Recovery Flow
+
+#### **Error Scenarios & Recovery Paths**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ USER QUERY INPUT                                                 │
+│ "Give me reports by invalid_table_name"                         │
+└──────────────────────┬──────────────────────────────────────────┘
+                       ↓
+            [ROUTER AGENT PROCESSES]
+                       ↓
+        ⚠️ ERROR: Table not recognized
+        Reason: invalid_table_name ∉ AGENT_CONFIG
+                       ↓
+        🔧 RECOVERY OPTIONS:
+        ├─ Suggest available tables to user
+        ├─ Ask for clarification
+        └─ Return empty results with error message
+                       ↓
+        Return: {
+          "status": "error",
+          "message": "Table 'invalid_table_name' not found",
+          "available_tables": ["POC_PROJECT", "POC_UNIT_HIER", "POC_STATUS_D", ...],
+          "generated_sql_query": "",
+          "ui_components": {}
+        }
+```
+
+#### **Error Type 1: Invalid Query**
+| Error | Detection | Recovery |
+|-------|-----------|----------|
+| Unrecognized table | Router agent checks AGENT_CONFIG | Suggest available tables |
+| Ambiguous column | Table extraction agents validate | Ask for clarification |
+| Invalid filter syntax | Filter check agent validates | Suggest valid operators |
+
+#### **Error Type 2: LLM Processing Failures**
+
+```
+USER QUERY → [Table Extraction Agents] → LLM Timeout (>30s)
+                                                 ↓
+                        ⚠️ TIMEOUT DETECTED (Chain wrapper catches)
+                                                 ↓
+                        🔧 RECOVERY:
+                        ├─ Retry with simplified prompt (1x)
+                        ├─ Use cached results if available
+                        └─ Fallback to basic table schema
+                                                 ↓
+        Continue with: {
+          "subquestions": {},  # Empty - timeout on extraction
+          "selected_columns": {},  # Empty - timeout
+          "status": "partial",
+          "warning": "Could not extract table info. Using basic schema."
+        }
+```
+
+#### **Error Type 3: Filter Validation Failures**
+
+```
+Filter Check Agent Analysis:
+├─ Step 1: Parse filter condition → ✅ SUCCESS: "unit_org_level = 5"
+├─ Step 2: Validate table exists → ✅ SUCCESS: POC_UNIT_HIER found
+├─ Step 3: Validate column exists → ❌ FAIL: "invalid_column" not in table
+├─ Step 4: Type check → SKIPPED (column not found)
+├─ Step 5: Operator check → SKIPPED (column not found)
+├─ Step 6: Range/constraint check → SKIPPED (column not found)
+└─ Result: {
+     "can_apply_filter": "no",
+     "reason": "Column 'invalid_column' not found in POC_UNIT_HIER",
+     "suggestion": "Available columns: unit_name, unit_org_level, parent_unit_skey, ..."
+   }
+```
+
+#### **Error Type 4: SQL Generation Failures**
+
+```
+Query Generator Chain:
+1. Load metadata → ✅ 47 tables loaded
+2. Build schema → ✅ Schema built
+3. Validate extracted columns → ⚠️ WARNING: Some columns missing
+   - Requested: ["project_skey", "status_skey", "creator_unit_skey"]
+   - Missing: ["status_skey"] ← Not in extracted results
+4. Construct SQL → ✅ Using available columns
+5. Validate SQL syntax → ✅ SQL valid
+6. Result: {
+     "generated_sql_query": "SELECT u.unit_name, p.project_skey...",
+     "status": "partial",
+     "warnings": ["Column status_skey could not be extracted, query may be incomplete"]
+   }
+```
+
+#### **Error Type 5: Database Connection**
+
+```
+Execution Phase:
+1. Acquire connection → ❌ CONNECTION FAILED
+   Error: "Cannot connect to database: timeout"
+   
+2. Recovery Steps:
+   ├─ Retry connection (3 attempts)
+   ├─ Check connection string
+   ├─ Verify network connectivity
+   └─ Return generated SQL with "not_executed" status
+
+3. Response:
+   {
+     "generated_sql_query": "SELECT u.unit_name, s.status_desc...",
+     "execution_status": "not_executed",
+     "error": "Database connection timeout after 3 retries",
+     "suggestion": "Try executing the SQL manually or check database status"
+   }
+```
+
+#### **Graceful Degradation Example**
+
+```
+Original Query: "Give me count of projects by status for store level units"
+
+Scenario: Table extraction agents timeout
+
+Degraded Response:
+{
+  "user_query": "Give me count of projects by status for store level units",
+  "router_response": ["project_agent", "dimension_agent", "unit_hier_agent"],
+  "subquestions": {},  # Empty due to LLM timeout
+  "selected_columns": {},  # Empty due to LLM timeout
+  "filters": ["yes"],  # Filters still validated
+  "generated_sql_query": "SELECT p.*, s.*, u.* FROM POC_PROJECT p 
+                          JOIN POC_STATUS_D s ON p.status_skey = s.status_skey 
+                          JOIN POC_UNIT_HIER u ON p.creator_unit_skey = u.unit_skey 
+                          WHERE u.unit_org_level = 5",  # Basic query without aggregation
+  "ui_components": {"status": "degraded", "recommended_component": "table"},
+  "warnings": [
+    "Could not extract specific columns due to LLM timeout",
+    "Using all columns from identified tables as fallback",
+    "Query may return more data than intended"
+  ]
+}
+```
+
+#### **Troubleshooting Guide**
+
+| Issue | Symptom | Root Cause | Solution |
+|-------|---------|-----------|----------|
+| No results returned | Empty result set | Router didn't identify agents | Check query mentions table/column names |
+| LLM timeout | Takes >30s to respond | Complex prompt or LLM overload | Simplify query or check LLM rate limits |
+| Invalid column names | Error in SQL | Extraction mismatch with schema | Verify columns exist in POC_* tables |
+| Filter not applied | Results include filtered data | Filter validation failed | Check filter syntax and table existence |
+| Wrong chart type | Incorrect visualization | UI selector logic mismatch | Check data type: categorical vs numeric |
+| Connection error | Cannot execute query | Database unreachable | Verify connection string and network |
+
+---
+
+### Execution Examples
+
+#### **Example 1: Simple Count Query**
+
+**Input:**
+```
+user_query = "How many projects do we have?"
+```
+
+**Processing Flow:**
+```
+Stage 0: INPUT
+└─ user_query: "How many projects do we have?"
+
+Stage 1: ROUTING (Router Agent)
+└─ router_response: ["project_agent"]
+   Reason: Query mentions "projects"
+
+Stage 2: TABLE EXTRACTION (Parallel Execution)
+├─ project_agent extracts: POC_PROJECT, POC_PROJECT_EXECUTION
+├─ Subquestions: [["number of projects", "POC_PROJECT"]]
+└─ Columns: ["project_skey", "project_name", "status_skey"]
+
+Stage 3: FILTER VALIDATION
+└─ filters: ["no"]
+   Reason: No WHERE clause criteria identified
+
+Stage 4: SQL GENERATION
+└─ generated_sql_query: 
+   "SELECT COUNT(DISTINCT p.project_skey) as total_projects 
+    FROM POC_PROJECT p"
+
+Stage 5: UI SELECTION
+└─ recommended_component: "metric"
+   Reason: Single aggregate value
+```
+
+**Output:**
+```json
+{
+  "generated_sql_query": "SELECT COUNT(DISTINCT p.project_skey) as total_projects FROM POC_PROJECT p",
+  "ui_components": {
+    "recommended_component": "metric",
+    "primary_reason": "Single aggregate numeric value",
+    "suggested_fields": ["total_projects"],
+    "chart_options": ["metric"]
+  }
+}
+```
+
+---
+
+#### **Example 2: Complex Multi-Join with Filters**
+
+**Input:**
+```
+user_query = "Give me count of active projects by status for store level units in Q4"
+```
+
+**Processing Flow:**
+```
+Stage 0: INPUT
+└─ user_query: "Give me count of active projects by status for store level units in Q4"
+
+Stage 1: ROUTING (Router Agent)
+└─ router_response: ["project_agent", "dimension_agent", "unit_hier_agent"]
+   Reasons:
+   ├─ "projects" → project_agent
+   ├─ "status" → dimension_agent  
+   └─ "store level units" → unit_hier_agent
+
+Stage 2: TABLE EXTRACTION (3 Agents Parallel)
+├─ project_agent:
+│  └─ Subquestions: [["active projects", "POC_PROJECT"]]
+│  └─ Columns: ["project_skey", "status_skey", "creator_unit_skey", "start_date"]
+│
+├─ dimension_agent:
+│  └─ Subquestions: [["project status breakdown", "POC_STATUS_D"]]
+│  └─ Columns: ["status_skey", "status_code", "status_desc"]
+│
+└─ unit_hier_agent:
+   └─ Subquestions: [["store level units", "POC_UNIT_HIER"]]
+   └─ Columns: ["unit_skey", "unit_name", "unit_org_level"]
+
+Stage 3: FILTER VALIDATION
+└─ filters: ["yes", ["POC_UNIT_HIER", "unit_org_level", 5]]
+   ├─ "active" → PROJECT_STATUS filter applied in SQL
+   ├─ "store level" → unit_org_level = 5 ✅ Validated
+   └─ "Q4" → Date range filter 2024-10-01 to 2024-12-31
+
+Stage 4: SQL GENERATION
+└─ generated_sql_query:
+   "SELECT 
+      u.unit_name,
+      s.status_desc,
+      COUNT(DISTINCT p.project_skey) as project_count,
+      MIN(p.start_date) as earliest_start,
+      MAX(p.start_date) as latest_start
+    FROM POC_PROJECT p
+    JOIN POC_STATUS_D s ON p.status_skey = s.status_skey
+    JOIN POC_UNIT_HIER u ON p.creator_unit_skey = u.unit_skey
+    WHERE u.unit_org_level = 5
+      AND p.status_code = 'ACTIVE'
+      AND QUARTER(p.start_date) = 4
+    GROUP BY u.unit_name, s.status_desc
+    ORDER BY project_count DESC"
+
+Stage 5: UI SELECTION
+└─ recommended_component: "bar_chart"
+   Primary Reason: Category comparison (units vs status)
+   Suggested Grouping: unit_name on X-axis, project_count on Y-axis
+```
+
+**Output:**
+```json
+{
+  "generated_sql_query": "SELECT u.unit_name, s.status_desc, COUNT(DISTINCT p.project_skey) as project_count FROM POC_PROJECT p JOIN POC_STATUS_D s ON p.status_skey = s.status_skey JOIN POC_UNIT_HIER u ON p.creator_unit_skey = u.unit_skey WHERE u.unit_org_level = 5 AND p.status_code = 'ACTIVE' AND QUARTER(p.start_date) = 4 GROUP BY u.unit_name, s.status_desc ORDER BY project_count DESC",
+  "ui_components": {
+    "recommended_component": "bar_chart",
+    "primary_reason": "Multiple categories with numeric comparison (units vs statuses)",
+    "suggested_fields": {
+      "x_axis": "unit_name",
+      "y_axis": "project_count",
+      "series": "status_desc"
+    },
+    "chart_options": ["bar_chart", "line_chart", "table"]
+  }
+}
+```
+
+---
+
+#### **Example 3: Query with No Matching Tables (Error Recovery)**
+
+**Input:**
+```
+user_query = "Show me data from NONEXISTENT_TABLE where column_xyz = 5"
+```
+
+**Processing Flow:**
+```
+Stage 1: ROUTING (Router Agent)
+└─ router_response: []  ❌ NO AGENTS MATCHED
+   Reason: "NONEXISTENT_TABLE" not in AGENT_CONFIG
+
+✅ ERROR DETECTION & RECOVERY:
+└─ Recovery Action: Return error with suggestions
+```
+
+**Output:**
+```json
+{
+  "status": "error",
+  "message": "Table 'NONEXISTENT_TABLE' not recognized",
+  "available_tables": [
+    "POC_PROJECT",
+    "POC_PROJECT_EXECUTION", 
+    "POC_UNIT_HIER",
+    "POC_STATUS_D",
+    "POC_RESOURCE_HIERARCHY",
+    "POC_PROJECT_HISTORY"
+  ],
+  "suggestion": "Did you mean one of: POC_PROJECT, POC_PROJECT_EXECUTION? Use exact table names.",
+  "generated_sql_query": "",
+  "ui_components": {}
+}
+```
+
+---
+
+#### **Example 4: UI Component Selection Logic**
+
+**Decision Tree:**
+```
+Query Result Analysis:
+├─ Single Aggregate Value? 
+│  ├─ YES → Component: "metric" (e.g., Total Count)
+│  └─ NO → Continue...
+│
+├─ Time Series Data? (temporal dimension)
+│  ├─ YES → Component: "line_chart" (trends over time)
+│  └─ NO → Continue...
+│
+├─ Categorical Comparison? (multiple categories, 1 metric)
+│  ├─ YES → Component: "bar_chart" (categories on X-axis)
+│  └─ NO → Continue...
+│
+├─ Part-to-Whole Distribution? (percentages/ratios)
+│  ├─ YES → Component: "pie_chart" (slices show proportions)
+│  └─ NO → Continue...
+│
+├─ 2D Relationship? (X-Y scatter pattern)
+│  ├─ YES → Component: "scatter_plot" (correlation visualization)
+│  └─ NO → Continue...
+│
+├─ Multi-Dimensional Heatmap? (3+ variables)
+│  ├─ YES → Component: "heatmap" (color intensity shows value)
+│  └─ NO → Continue...
+│
+└─ Default → Component: "table" (all other cases)
+
+Example Mappings:
+├─ "Count of projects" → metric
+├─ "Projects by month in 2024" → line_chart
+├─ "Project count by status" → bar_chart  
+├─ "Market share by division" → pie_chart
+├─ "Project budget vs duration" → scatter_plot
+├─ "Project status by unit by month" → heatmap
+└─ "All project details" → table
+```
 
 ---
 

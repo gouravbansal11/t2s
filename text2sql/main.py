@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Annotated
 from agents.routerAgent import router_agent, get_available_agents, get_agent_tables
-from agents.ui_generator_agents.uiSelectorAgent import ui_selector_agent_impl
+from agents.ui_generator_agents.ui_selector_agent import ui_selector_agent_impl
 from langgraph.graph import StateGraph, START, END
 from utils.stateReducers import merge_dicts
 
@@ -27,7 +27,7 @@ class AgentState(BaseModel):
     subquestions: Annotated[dict, merge_dicts] = {}  # ✅ Handles concurrent updates
     selected_columns: Annotated[dict, merge_dicts] = {}  # ✅ Handles concurrent updates
     filters: list = []  # Stores filter conditions
-    generated_query: str = ""  # Final SQL query
+    generated_sql_query: str = ""  # Final SQL query
     ui_components: dict = {}  # Stores UI components
 
 
@@ -119,7 +119,7 @@ print("=" * 80 + "\n")
 
 # Handle both dict and object responses
 if isinstance(result, dict):
-    print(f"Final Generated Query:\n{result.get('generated_query', 'No query generated')}\n")
+    print(f"Final Generated Query:\n{result.get('generated_sql_query', 'No query generated')}\n")
 else:
-    print(f"Final Generated Query:\n{result.generated_query}\n")
+    print(f"Final Generated Query:\n{result.generated_sql_query}\n")
 

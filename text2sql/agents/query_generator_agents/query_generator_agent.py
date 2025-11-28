@@ -38,15 +38,15 @@ def query_generator_agent(state):
             "table_schema": table_schema
         })
         
-        state.generated_query = sql_query
+        state.generated_sql_query = sql_query
         print(f"[AGENT] [SUCCESS] SQL Query Generator completed\n")
         print(f"[AGENT] ================================================================================")
         print(f"[AGENT] FINAL GENERATED QUERY:")
-        print(f"[AGENT] {state.generated_query}")
+        print(f"[AGENT] {state.generated_sql_query}")
         print(f"[AGENT] ================================================================================\n")
         
     except Exception as e:
         print(f"[AGENT] [ERROR] SQL Query Generator Error: {str(e)}\n")
-        state.generated_query = ""
+        state.generated_sql_query = ""
     
     return state
