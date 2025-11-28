@@ -122,14 +122,16 @@ Text2SQL is a **multi-agent text-to-SQL conversion system** that transforms natu
         │ tables/columns) │  │                │  │                │
         └────────┬────────┘  └────────┬───────┘  └────────┬────────┘
                  │                    │                    │
-                 │       ┌────────────┴────────────┐      │
-                 │       │    TABLE EXTRACTOR     │      │
-                 │       │  ✓ Subquestion chain  │      │
-                 │       │  ✓ Column extraction  │      │
-                 │       │  ✓ 3-layer validation │      │
-                 │       └────────────┬───────────┘      │
-                 │                    │                   │
-                 └────────────────────┼───────────────────┘
+                 └────────────────────┼────────────────────┘
+                                      │
+                       ┌──────────────▼──────────────┐
+                       │    TABLE EXTRACTOR         │
+                       │  ✓ Subquestion chain      │
+                       │  ✓ Column extraction      │
+                       │  ✓ 3-layer validation     │
+                       │  (Used by all 3 agents)   │
+                       └──────────────┬──────────────┘
+                                      │
                                       │
                         ┌─────────────▼──────────────┐
                         │  Merge Results from 3      │
