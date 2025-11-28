@@ -1,3 +1,4 @@
+import time
 import pandas as pd
 from langchain_core.runnables import RunnableMap, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
@@ -225,6 +226,7 @@ for table_name, table_description in tables_descriptions.items():
         # Invoke LLM to generate schema documentation
         print(f"[KNOWLEDGEBASE] [INFO] Generating schema documentation...")
         
+        time.sleep(10)
         result = chain.invoke({
             "table_name": table_name,
             "table_description": table_description,

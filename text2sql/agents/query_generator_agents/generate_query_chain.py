@@ -2,6 +2,7 @@ from langchain_core.runnables import RunnableLambda, RunnableMap
 from langchain_core.output_parsers import StrOutputParser
 from utils.llmProvider import llm
 from utils.promptProvider import getPrompt
+import time
 
 # SQL Query Generation Chain
 sql_generation_system_prompt = """You are an expert SQL query generator for a Text-to-SQL agent. Your job is to generate accurate, efficient SQL queries based on user requirements.
@@ -144,8 +145,10 @@ def generate_sql_with_logging(inputs):
     print(f"[SQL QUERY GENERATOR] Schema Available: {len(inputs['table_schema'])} characters")
     
     try:
+        time.sleep(10)
         # Invoke the chain
         chain = sql_final_task | sql_prompt | llm | StrOutputParser()
+
         result = chain.invoke(inputs)
         print(f"[SQL QUERY GENERATOR] Generated Query:\n{result}")
         print(f"[SQL QUERY GENERATOR] [SUCCESS] SQL generation completed successfully")

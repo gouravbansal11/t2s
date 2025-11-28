@@ -1,4 +1,5 @@
-﻿from langchain_core.runnables import RunnableLambda, RunnableMap
+﻿import time
+from langchain_core.runnables import RunnableLambda, RunnableMap
 from langchain_core.output_parsers import StrOutputParser
 import json
 from utils.llmProvider import llm
@@ -121,6 +122,7 @@ def router_agent(query: str):
     print(f"[ROUTER AGENT] Input Query: {query}")
     
     try:
+        time.sleep(10)
         result = chain.invoke({"user_query": query})
         print(f"[ROUTER AGENT] LLM Response: {result}")
         

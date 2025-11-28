@@ -2,6 +2,7 @@ from langchain_core.runnables import RunnableLambda, RunnableMap
 from langchain_core.output_parsers import StrOutputParser
 from utils.llmProvider import llm
 from utils.promptProvider import getPrompt
+import time
 
 system_message_content = """You are an expert assistant designed to help a text-to-SQL agent determine whether filters (i.e., WHERE clauses) are required for answering a user's natural language question using a SQL query on a database.
 
@@ -136,6 +137,7 @@ def filter_check_with_logging(inputs):
     try:
         # Invoke the chain
         chain = final_task | prompt | llm | StrOutputParser()
+        time.sleep(10)
         result = chain.invoke(inputs)
         print(f"[FILTER CHECK AGENT] Filter Analysis Result: {result}")
         print(f"[FILTER CHECK AGENT] [SUCCESS] Filter detection completed successfully")

@@ -1,4 +1,5 @@
 
+from unittest import result
 from utils.promptProvider import getPrompt
 from langchain_core.runnables import RunnableLambda,RunnableMap
 from langchain_core.output_parsers import StrOutputParser
@@ -99,5 +100,17 @@ task = RunnableMap({
 
 prompt = getPrompt(system_message_content, human_message_content)
 
-ui_selector_agent_chain = task | prompt | llm | StrOutputParser()
+def getUIComponentRecommendation(inputs):
+    try:
+        ui_selector_chain_internal = task | prompt | llm | StrOutputParser()
+        result = ui_selector_chain_internal.invoke(input)
+        print(f"[UI SELECTOR AGENT] Generated UI Component Recommendation:\n{result}")
+        print(f"[UI SELECTOR AGENT] [SUCCESS] UI component selection completed successfully")
+        print("="*80 + "\n")
+        return result
+    except Exception as e:
+        print(f"[UI SELECTOR AGENT] [ERROR] Error during UI component selection: {str(e)}")
+        raise
+
+ui_selector_agent_chain =  RunnableMap(getUIComponentRecommendation)
 
