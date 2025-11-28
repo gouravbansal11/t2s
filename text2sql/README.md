@@ -124,19 +124,47 @@ Text2SQL is a **multi-agent text-to-SQL conversion system** that transforms natu
                  │                    │                    │
                  └────────────────────┼────────────────────┘
                                       │
-                       ┌──────────────▼──────────────┐
-                       │    TABLE EXTRACTOR         │
-                       │  ✓ Subquestion chain      │
-                       │  ✓ Column extraction      │
-                       │  ✓ 3-layer validation     │
-                       │  (Used by all 3 agents)   │
-                       └──────────────┬──────────────┘
-                                      │
-                                      │
-                        ┌─────────────▼──────────────┐
-                        │  Merge Results from 3      │
-                        │  Agents (Annotations)      │
-                        └─────────────┬──────────────┘
+             ┌────────────────────────▼────────────────────────┐
+             │          TABLE EXTRACTOR COMPONENT             │
+             │    (Generic - Works for ALL table agents)      │
+             │                                                 │
+             │   ┌──────────────────────────────────────────┐ │
+             │   │  1. Table Extractor                      │ │
+             │   │     • Identifies relevant tables         │ │
+             │   │     • Generic across all agent queries   │ │
+             │   │     • Extracts: Table names & purposes   │ │
+             │   └──────────────────────────────────────────┘ │
+             │                                                 │
+             │   ┌──────────────────────────────────────────┐ │
+             │   │  2. Column Extractor                     │ │
+             │   │     • Identifies relevant columns        │ │
+             │   │     • Generic across all agent queries   │ │
+             │   │     • Extracts: Column names & types     │ │
+             │   └──────────────────────────────────────────┘ │
+             │                                                 │
+             │   ┌──────────────────────────────────────────┐ │
+             │   │  3. Validation Layer                     │ │
+             │   │     • 3-layer validation                 │ │
+             │   │     • Generic error checking             │ │
+             │   │     • Ensures data quality               │ │
+             │   └──────────────────────────────────────────┘ │
+             │                                                 │
+             │  Shared Processing:                            │
+             │  • Subquestion chain (generic)                │
+             │  • Column extraction (generic)                │
+             │  • 3-layer validation (generic)               │
+             │                                                 │
+             │  Used By: All 3 table agents                   │
+             │  ├─ Unit Hier Agent                           │
+             │  ├─ Project Agent                             │
+             │  └─ Dimension Agent                           │
+             └────────────────────┬─────────────────────────┘
+                                  │
+                        ┌─────────▼──────────┐
+                        │  Merge Results     │
+                        │  from 3 Agents     │
+                        │  (Annotations)     │
+                        └─────────┬──────────┘
                                       │
                         ┌─────────────▼──────────────┐
                         │ 3️⃣ FILTER CHECK AGENT    │
