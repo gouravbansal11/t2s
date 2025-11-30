@@ -1,10 +1,10 @@
 
 import time
 from unittest import result
-from utils.promptProvider import getPrompt
+from utils.prompt_provider import getPrompt
 from langchain_core.runnables import RunnableLambda,RunnableMap
 from langchain_core.output_parsers import JsonOutputParser
-from utils.llmProvider import llm
+from utils.llm_provider import llm
 
 system_message_content = """
 You are the UI Component Selector Agent in a TEXT-TO-SQL system. Your task is to analyze user queries and generated SQL to recommend the best UI components for data visualization.

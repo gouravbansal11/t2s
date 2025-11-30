@@ -2,7 +2,7 @@ from langchain_core.runnables import RunnableLambda,RunnableMap
 from langchain_core.output_parsers import StrOutputParser    
 from utils.llm_provider import llm
 from utils.prompt_provider import getPrompt
-import time
+
 
 system_message_content = """You are an intelligent data column selector that chooses the most relevant columns from a list of available column descriptions to help answer a subquestion ONLY.
 
@@ -108,7 +108,6 @@ def generate_columnExtractor_with_logging(inputs):
         prompt = getPrompt(system_message_content, human_message_content, agent_system_message)
         
         chain = final_task | prompt | llm | StrOutputParser()
-        time.sleep(10)
         result = chain.invoke(inputs)
         print(f"    [COLUMN EXTRACTOR CHAIN] [SUCCESS] Columns extracted successfully")
         return result

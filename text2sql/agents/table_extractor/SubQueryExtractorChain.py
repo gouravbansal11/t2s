@@ -3,7 +3,6 @@ from langchain_core.runnables import RunnableLambda,RunnableMap
 from langchain_core.output_parsers import StrOutputParser    
 from utils.llm_provider import llm
 from utils.prompt_provider import getPrompt
-import time
 
 system_message_content = """
 You are an intelligent subquestion generator that extracts subquestions based on human query and other information provided. You are part of a Text-to-SQL agent.
@@ -117,7 +116,6 @@ def generate_subquestions_with_logging(inputs):
         prompt = getPrompt(system_message_content, human_message_content, agent_system_message)
         
         chain = final_task | prompt | llm | StrOutputParser()
-        time.sleep(10)
         result = chain.invoke(inputs)
         print(f"  [SUBQUESTION CHAIN] [SUCCESS] Subquestions generated successfully")
         return result

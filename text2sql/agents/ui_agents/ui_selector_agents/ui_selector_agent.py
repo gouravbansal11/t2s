@@ -26,5 +26,5 @@ def ui_selector_agent_impl(state):
         recommended_component = "table"
 
     return {
-        "ui_components": {"recommended_component": recommended_component, "fields": fields, "configs": configs}
+        "ui_components_details": {"recommended_component": recommended_component, "fields": fields, "configs": configs}
     }

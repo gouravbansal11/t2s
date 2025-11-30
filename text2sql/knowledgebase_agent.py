@@ -3,8 +3,8 @@ import pandas as pd
 from langchain_core.runnables import RunnableMap, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from sqlalchemy import create_engine
-from utils.llmProvider import llm
-from utils.promptProvider import getPrompt
+from utils.llm_provider import llm
+from utils.prompt_provider import getPrompt
 from utils.db_utility import execute_query 
 import pickle
 
