@@ -59,21 +59,25 @@ Watch the TextToSQL Converter in action! This video demonstrates the complete pi
 - **SQL generation** - Final optimized SQL query creation
 - **Data visualization** - Interactive charts and tables with matplotlib
 
-### Demo Video File
+### Play Video in Browser
 
-📁 **Location:** `TextToSQL_Convertor_Demo.avi`
+<video width="100%" controls style="max-width: 800px; border: 2px solid #333; border-radius: 8px;">
+  <source src="TextToSQL_Convertor_Demo.avi" type="video/x-msvideo">
+  Your browser doesn't support AVI video playback. 
+  <a href="TextToSQL_Convertor_Demo.avi">Download the demo video instead</a>
+</video>
 
-To view the demo video locally, navigate to the project root directory and open:
-```
-D:\AI-workspace\t2s\text2sql\TextToSQL_Convertor_Demo.avi
-```
+**File:** `TextToSQL_Convertor_Demo.avi` (~36 MB)
 
-Or run this command to play it:
+### Download & Play Locally
+
+If the browser player doesn't work, you can download and play the video locally:
+
 ```bash
-# On Windows
+# On Windows - Open with default player
 start TextToSQL_Convertor_Demo.avi
 
-# Or use your preferred video player
+# Or use your preferred video player (VLC, Windows Media Player, etc.)
 ```
 
 ### What You'll See in the Demo
