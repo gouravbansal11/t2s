@@ -5,7 +5,9 @@ from langchain_core.output_parsers import StrOutputParser
 from sqlalchemy import create_engine
 from utils.llmProvider import llm
 from utils.promptProvider import getPrompt
+from utils.db_utility import execute_query 
 import pickle
+
 
 # Manually Table Descriptions
 
@@ -37,13 +39,13 @@ tables_descriptions = {
 # Fetching records from database
 # db_connection = create_engine('db2+ibm_db://user:pass@localhost:50000/SAMPLE'); #  DB2 Example
 # postgres example 
-db_connection = create_engine('postgresql+psycopg2://postgres:password@localhost:5432/postgres');
+#db_connection = create_engine('postgresql+psycopg2://postgres:password@localhost:5432/postgres');
 # db_connection = create_engine('sqlite:///sample.db'); # SQLite Example
 
 def fetch_data(table):
     # Use RANDOM() for PostgreSQL instead of RAND() (which is MySQL syntax)
     query = 'SELECT * FROM {} ORDER BY RANDOM() LIMIT 10'.format(table)
-    df_sample = pd.read_sql(query,db_connection)
+    df_sample = execute_query(query)
     print(f"Table {table} has {df_sample}")
     return df_sample
 

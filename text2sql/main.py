@@ -1,9 +1,10 @@
 from pydantic import BaseModel
 from typing import Annotated
-from agents.routerAgent import router_agent, get_available_agents, get_agent_tables
-from agents.ui_generator_agents.ui_selector_agent import ui_selector_agent_impl
+from agents.router_agent import router_agent, get_available_agents, get_agent_tables
+#from agents.ui_agents.ui_selector_agents.ui_selector_agent import ui_selector_agent_impl
 from langgraph.graph import StateGraph, START, END
 from utils.stateReducers import merge_dicts
+from utils.db_utility import execute_query
 
 # Import table extraction agents
 from agents.query_generator_agents.tables_agents import (
@@ -28,7 +29,7 @@ class AgentState(BaseModel):
     selected_columns: Annotated[dict, merge_dicts] = {}  # ✅ Handles concurrent updates
     filters: list = []  # Stores filter conditions
     generated_sql_query: str = ""  # Final SQL query
-    ui_components: dict = {}  # Stores UI components
+    ui_components_details: dict = {}  # Stores UI components
 
 
 def router(state: AgentState):
@@ -84,42 +85,53 @@ def ui_selector_agent(state):
     """Wrapper for UI Selector Agent"""
     return ui_selector_agent_impl(state)
 
+def invoke_t2s_pipeline():
+        # Build StateGraph
+    state_graph = StateGraph(AgentState)
+    state_graph.add_node("router", router)
+    state_graph.add_node("unit_hier_agent", unit_hier_agent)
+    state_graph.add_node("project_agent", project_agent)
+    state_graph.add_node("dimension_agent", dimension_agent)
+    state_graph.add_node("filter_check_agent", filter_check_agent)
+    state_graph.add_node("query_generator_agent", query_generator_agent)
+    state_graph.add_node("ui_selector_agent", ui_selector_agent)
 
-# Build StateGraph
-state_graph = StateGraph(AgentState)
-state_graph.add_node("router", router)
-state_graph.add_node("unit_hier_agent", unit_hier_agent)
-state_graph.add_node("project_agent", project_agent)
-state_graph.add_node("dimension_agent", dimension_agent)
-state_graph.add_node("filter_check_agent", filter_check_agent)
-state_graph.add_node("query_generator_agent", query_generator_agent)
-state_graph.add_node("ui_selector_agent", ui_selector_agent)
+    state_graph.add_edge(START, "router")
+    state_graph.add_conditional_edges("router", router_request, sql_agents)
+    state_graph.add_edge("unit_hier_agent", "filter_check_agent")
+    state_graph.add_edge("project_agent", "filter_check_agent")
+    state_graph.add_edge("dimension_agent", "filter_check_agent")
+    state_graph.add_edge("filter_check_agent", "query_generator_agent")
+    state_graph.add_edge("query_generator_agent", "ui_selector_agent")
+    state_graph.add_edge("ui_selector_agent", END)
 
-state_graph.add_edge(START, "router")
-state_graph.add_conditional_edges("router", router_request, sql_agents)
-state_graph.add_edge("unit_hier_agent", "filter_check_agent")
-state_graph.add_edge("project_agent", "filter_check_agent")
-state_graph.add_edge("dimension_agent", "filter_check_agent")
-state_graph.add_edge("filter_check_agent", "query_generator_agent")
-state_graph.add_edge("query_generator_agent", "ui_selector_agent")
-state_graph.add_edge("ui_selector_agent", END)
+    state_graph_final = state_graph.compile()
 
-state_graph_final = state_graph.compile()
+    # Execute pipeline
+    print("\n" + "=" * 80)
+    print("TEXT-TO-SQL CONVERSION PIPELINE")
+    print("=" * 80 + "\n")
 
-# Execute pipeline
-print("\n" + "=" * 80)
-print("TEXT-TO-SQL CONVERSION PIPELINE")
-print("=" * 80 + "\n")
+    result = state_graph_final.invoke(AgentState(user_query=input("Enter the query: ")))
 
-result = state_graph_final.invoke(AgentState(user_query=input("Enter the query: ")))
+    print("\n" + "=" * 80)
+    print(f"PIPELINE EXECUTION COMPLETED. RESULT: {result}")
+    print("=" * 80 + "\n")
+    return result
 
-print("\n" + "=" * 80)
-print("PIPELINE EXECUTION COMPLETED")
-print("=" * 80 + "\n")
+#from services.ui_generator import generate_ui
 
-# Handle both dict and object responses
-if isinstance(result, dict):
-    print(f"Final Generated Query:\n{result.get('generated_sql_query', 'No query generated')}\n")
-else:
-    print(f"Final Generated Query:\n{result.generated_sql_query}\n")
+def draw_data(state: AgentState):
+    # Placeholder for drawing or exporting pipeline results; implement as needed
+    data = execute_query(state["generated_sql_query"])
+    print(f"Data retrieved from database: {data}")
+    ui_components_details = state["ui_components_details"]
+ #   generate_ui(ui_components_details.get("recommended_component"), ui_components_details.get("fields", []),ui_components_details.get("configs", {}), data)
+    
+
+def main():
+    final_state = invoke_t2s_pipeline()
+    draw_data(state=final_state)
+
+main()
 
