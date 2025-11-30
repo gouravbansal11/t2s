@@ -50,6 +50,37 @@ python main.py
 
 ---
 
+## 📹 Demo Video
+
+Watch the TextToSQL Converter in action! This video demonstrates the complete pipeline:
+
+- **Natural language query input** - User asks a business question
+- **Multi-agent processing** - Router, table extractors, and filter validation agents work in parallel
+- **SQL generation** - Final optimized SQL query creation
+- **Data visualization** - Interactive charts and tables with matplotlib
+
+### Video Options
+
+> **Note:** The demo video (TextToSQL_Convertor_Demo.avi, ~200MB) is hosted externally due to GitHub's file size limits.
+
+**Upload the video to one of these platforms and share the link:**
+- 📺 [YouTube](https://www.youtube.com/) - Best for public sharing and discoverability
+- ☁️ [Google Drive](https://drive.google.com/) - Easy sharing with a public link
+- ☁️ [OneDrive](https://onedrive.live.com/) - Microsoft's cloud storage
+- 🎬 [Vimeo](https://vimeo.com/) - Professional video hosting
+- 💾 [GitHub Releases](https://github.com/gouravbansal11/t2s/releases) - Attach to a release
+
+### What You'll See in the Demo
+
+✅ Query routing to appropriate agents  
+✅ Parallel table extraction for related entities  
+✅ Filter validation and normalization  
+✅ Real-time SQL generation  
+✅ Dynamic visualization with 6+ chart types (table, bar chart, line chart, pie chart, scatter plot, heatmap)  
+✅ Error handling and recovery flows  
+
+---
+
 ## Project Overview
 
 ### What This System Does

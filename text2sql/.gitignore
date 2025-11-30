@@ -47,3 +47,9 @@ Thumbs.db # Windows
 *.log
 *.tmp
 *.swp
+
+# Large video files (use external hosting)
+*.mp4
+*.avi
+*.mov
+*.mkv
