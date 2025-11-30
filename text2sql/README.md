@@ -59,16 +59,22 @@ Watch the TextToSQL Converter in action! This video demonstrates the complete pi
 - **SQL generation** - Final optimized SQL query creation
 - **Data visualization** - Interactive charts and tables with matplotlib
 
-### Video Options
+### Demo Video File
 
-> **Note:** The demo video (TextToSQL_Convertor_Demo.avi, ~200MB) is hosted externally due to GitHub's file size limits.
+📁 **Location:** `TextToSQL_Convertor_Demo.avi`
 
-**Upload the video to one of these platforms and share the link:**
-- 📺 [YouTube](https://www.youtube.com/) - Best for public sharing and discoverability
-- ☁️ [Google Drive](https://drive.google.com/) - Easy sharing with a public link
-- ☁️ [OneDrive](https://onedrive.live.com/) - Microsoft's cloud storage
-- 🎬 [Vimeo](https://vimeo.com/) - Professional video hosting
-- 💾 [GitHub Releases](https://github.com/gouravbansal11/t2s/releases) - Attach to a release
+To view the demo video locally, navigate to the project root directory and open:
+```
+D:\AI-workspace\t2s\text2sql\TextToSQL_Convertor_Demo.avi
+```
+
+Or run this command to play it:
+```bash
+# On Windows
+start TextToSQL_Convertor_Demo.avi
+
+# Or use your preferred video player
+```
 
 ### What You'll See in the Demo
 
@@ -78,6 +84,7 @@ Watch the TextToSQL Converter in action! This video demonstrates the complete pi
 ✅ Real-time SQL generation  
 ✅ Dynamic visualization with 6+ chart types (table, bar chart, line chart, pie chart, scatter plot, heatmap)  
 ✅ Error handling and recovery flows  
+✅ Complete end-to-end pipeline execution  
 
 ---
 
