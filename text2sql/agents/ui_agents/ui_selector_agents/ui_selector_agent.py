@@ -1,4 +1,4 @@
-from agents.ui_generator_agents.ui_selector_agent_chain import ui_selector_agent_chain
+from agents.ui_agents.ui_selector_agents.ui_selector_agent_chain import ui_selector_agent_chain
 
 def ui_selector_agent_impl(state): 
     """ Invoke the UI Selector Agent to determine UI components based on the user query and SQL Query Generated. """
@@ -17,11 +17,14 @@ def ui_selector_agent_impl(state):
     # Extract recommended component from JSON response
     try:
         recommended_component = ui_selector_agent_chain_response.get("recommended_component", "table")
+        fields = ui_selector_agent_chain_response.get("fields", [])
+        configs = ui_selector_agent_chain_response.get("configs", {})
+        print(f"[UI SELECTOR AGENT] |-- Recommended Component: {recommended_component}")    
     except (AttributeError, KeyError) as e:
         print(f"[UI SELECTOR AGENT] [WARNING] Failed to extract recommendation: {str(e)}")
         print(f"[UI SELECTOR AGENT] [INFO] Defaulting to 'table' component")
         recommended_component = "table"
 
     return {
-        "ui_components": {"ui_selector_agent": recommended_component}
+        "ui_components": {"recommended_component": recommended_component, "fields": fields, "configs": configs}
     }
