@@ -119,14 +119,14 @@ def invoke_t2s_pipeline():
     print("=" * 80 + "\n")
     return result
 
-#from services.ui_generator import generate_ui
+from services.ui_generator import generate_ui
 
 def draw_data(state: AgentState):
     # Placeholder for drawing or exporting pipeline results; implement as needed
     data = execute_query(state["generated_sql_query"])
-    print(f"Data retrieved from database: {data}")
+    print(f"Data retrieved from database \n: {data}")
     ui_components_details = state["ui_components_details"]
- #   generate_ui(ui_components_details.get("recommended_component"), ui_components_details.get("fields", []),ui_components_details.get("configs", {}), data)
+    generate_ui(ui_components_details.get("recommended_component"), ui_components_details.get("fields", []),ui_components_details.get("configs", {}), data)
     
 
 def main():

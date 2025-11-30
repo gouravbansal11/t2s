@@ -29,209 +29,132 @@ Provide your recommendation as JSON with the following structure:
         "value_field": "field for sizing/color"
     }},
     "configs": {{
-        "figure_size": [width, height],
-        "cellLoc": "center",  # For TABLE
-        "loc": "center",  # For TABLE
-        "colWidths": 0.2,  # For TABLE
-        "linewidth": 2,  # For LINE_CHART
-        "marker": "o",  # For LINE_CHART
-        "markersize": 6,  # For LINE_CHART
-        "linestyle": "-",  # For LINE_CHART
-        "color": "steelblue",  # For BAR_CHART
-        "edgecolor": "black",  # For BAR_CHART/SCATTER_PLOT
-        "alpha": 0.8,  # For BAR_CHART/SCATTER_PLOT
-        "rotation": 45,  # For BAR_CHART
-        "autopct": "%1.1f%%",  # For PIE_CHART
-        "startangle": 90,  # For PIE_CHART
-        "explode": [0.05],  # For PIE_CHART
-        "s": 100,  # For SCATTER_PLOT (marker size)
-        "cmap": "YlOrRd",  # For HEATMAP
-        "cbar": true,  # For HEATMAP
-        "annot": true,  # For HEATMAP
-        "fmt": ".2f",  # For HEATMAP
-        "grid": true,  # For LINE_CHART/SCATTER_PLOT
-        "legend": true,  # For charts
-        "x_label": "Label",
-        "y_label": "Label"
+        ONLY include parameters that apply to the recommended component.
+        DO NOT include parameters not supported by the specific chart type.
     }}
 }}
 
-## Matplotlib Configuration Guidelines
+## Chart-Specific Valid Matplotlib Configurations
 
-### TABLE Configuration
-- figure_size: [12, 6]
-- cellLoc: "center"
-- loc: "center"
-- colWidths: 0.2
+### TABLE - Valid configs (all optional):
+- No matplotlib configs needed (table doesn't use matplotlib kwargs)
 
-### LINE_CHART Configuration
-- figure_size: [12, 6]
-- linewidth: 2
-- marker: "o"
-- markersize: 6
-- linestyle: "-"
-- x_label: "Time Period"
-- y_label: "Value"
-- grid: true
-- legend: true
+### BAR_CHART - Valid configs only:
+- color: str (e.g., 'steelblue', 'coral', '#FF5733')
+- alpha: float (0.0-1.0, transparency)
+- width: float (bar width, default 0.8)
+- edgecolor: str (edge color of bars)
+- linewidth: float (thickness of bar edges)
+Example: {{"color": "steelblue", "alpha": 0.8, "width": 0.7}}
 
-### BAR_CHART Configuration
-- figure_size: [12, 6]
-- color: "steelblue"
-- edgecolor: "black"
-- alpha: 0.8
-- x_label: "Category"
-- y_label: "Count/Value"
-- rotation: 45
-- legend: false
+### LINE_CHART - Valid configs only:
+- color: str (line color)
+- linewidth: float (line thickness)
+- linestyle: str ('-', '--', '-.', ':')
+- marker: str ('o', 's', '^', 'D', etc.)
+- markersize: float (size of markers)
+- alpha: float (0.0-1.0)
+Example: {{"color": "green", "linewidth": 2, "marker": "o", "linestyle": "-"}}
 
-### PIE_CHART Configuration
-- figure_size: [8, 8]
-- autopct: "%1.1f%%"
-- startangle: 90
-- explode: [0.05]
-- legend: true
+### SCATTER_PLOT - Valid configs only:
+- color: str (point color)
+- s: int (point size, default 36)
+- alpha: float (0.0-1.0)
+- marker: str ('o', 's', '^', 'D', etc.)
+- edgecolors: str (edge color of points)
+Example: {{"color": "blue", "s": 100, "alpha": 0.6, "marker": "o"}}
 
-### SCATTER_PLOT Configuration
-- figure_size: [10, 8]
-- s: 100
-- alpha: 0.6
-- color: "blue"
-- edgecolor: "black"
-- x_label: "X Variable"
-- y_label: "Y Variable"
-- grid: true
+### PIE_CHART - Valid configs only:
+- colors: list of str (colors for each slice)
+- autopct: str (format for percentages, e.g., '%1.1f%%')
+- startangle: int (rotation angle, e.g., 90)
+- textprops: dict (for label styling)
+Example: {{"autopct": "%1.1f%%", "startangle": 90}}
 
-### HEATMAP Configuration
-- figure_size: [10, 8]
-- cmap: "YlOrRd"
-- cbar: true
-- annot: true
-- fmt: ".2f"
-- x_label: "Column Categories"
-- y_label: "Row Categories"
+### HEATMAP - Valid configs only:
+- cmap: str (colormap: 'viridis', 'YlOrRd', 'RdYlGn', 'coolwarm', etc.)
+- aspect: str ('auto', 'equal')
+- interpolation: str ('nearest', 'bilinear', etc.)
+- origin: str ('upper', 'lower')
+Example: {{"cmap": "viridis", "aspect": "auto"}}
+
+## IMPORTANT RESTRICTIONS:
+- DO NOT include 'title', 'xlabel', 'ylabel', 'grid' in configs - these are set separately using plt.title(), plt.xlabel(), etc.
+- DO NOT include parameters not specifically listed above for each chart type
+- Only include configs that are actually used by matplotlib for that specific chart type
+- Each chart type has its own valid parameters - do not mix them
+- ⚠️ CRITICAL - HEATMAP DATA TYPE REQUIREMENT: NEVER recommend HEATMAP if data contains any non-numeric values (strings, objects, dates, etc.). Check all columns: if even ONE column is not numeric (int or float), use BAR_CHART or TABLE instead.
 
 ## Decision Criteria
+
+### SAFETY RULES (APPLY THESE FIRST):
+1. If data has ANY non-numeric columns (strings, text, dates, objects) → Use TABLE
+2. If data is mixed numeric and non-numeric → Use TABLE
+3. If unsure about data types → Default to TABLE (safest option)
+4. Only use HEATMAP if you are 100% certain ALL columns are numeric (int/float)
 
 ### Use TABLE when:
 - User asks for "details", "list", "all records", "breakdown by"
 - Multiple columns with different data types
-- BEST FOR: Mixed data types (strings + numbers)
 - Need to show raw data with filtering/sorting
 - Exact values are more important than trends
+- Configs: {{}} (empty, no matplotlib configs needed)
 
 ### Use LINE_CHART when:
 - Data has time dimension (dates, quarters, months)
 - User asks "over time", "trend", "progression"
 - Single or few metrics over time period
-- REQUIRES: 2 numeric columns (x and y must be numeric)
 - Showing progression or changes
+- Include configs: color, linewidth, linestyle, marker, markersize, alpha
 
 ### Use BAR_CHART when:
 - Comparing categories or groups
 - User asks "by status", "by department", "comparison"
 - Discrete categories on X-axis, numeric values on Y-axis
-- REQUIRES: At least one numeric column for Y-axis values
 - Showing composition or distribution
+- Include configs: color, alpha, width, edgecolor, linewidth
 
 ### Use PIE_CHART when:
 - Showing parts of a whole (percentages)
 - User asks "breakdown", "distribution", "proportion"
 - 2-5 categories max
-- REQUIRES: One numeric column (for values)
 - Total adds up to 100%
+- Include configs: autopct, startangle, colors
 
 ### Use SCATTER_PLOT when:
 - Relationship between two numeric variables
 - User asks "correlation", "relationship", "pattern"
 - Multiple data points showing correlation
-- REQUIRES: Two numeric columns (both X and Y must be numeric)
+- Include configs: color, s, alpha, marker, edgecolors
 
 ### Use HEATMAP when:
-- 2D relationship between categories
-- User asks "matrix", "cross-tabulation"
-- Large dataset with two dimensions
-- *** CRITICAL: ONLY if ALL data columns are numeric - NO string columns ***
-
-## CRITICAL: CONFIG SELECTION RULES - ONLY RETURN SUPPORTED PARAMETERS
-
-**⚠️ MANDATORY: Return ONLY the exact config parameters that are supported by BOTH the recommended component AND matplotlib. Do NOT return parameters for other components.**
-
-### Return ONLY these configs for each component:
-
-**TABLE:**
-- figure_size: [width, height]
-- cellLoc: "center" | "left" | "right"
-- loc: "center" | "upper" | "lower" | "left" | "right"
-- colWidths: float value (0.1 to 1.0)
-
-**LINE_CHART:**
-- figure_size: [width, height]
-- linewidth: number (1-5)
-- marker: "o" | "s" | "^" | "x" | "+"
-- markersize: number (4-12)
-- linestyle: "-" | "--" | "-." | ":"
-- grid: true | false
-- legend: true | false
-- x_label: string
-- y_label: string
-
-**BAR_CHART:**
-- figure_size: [width, height]
-- color: color name or hex
-- edgecolor: color name or hex
-- alpha: 0.0 to 1.0
-- rotation: 0-90 degrees
-- legend: true | false
-- x_label: string
-- y_label: string
-
-**PIE_CHART:**
-- figure_size: [width, height]
-- autopct: "%1.1f%%" | "%1.2f%%" | None
-- startangle: 0-360 degrees
-- explode: [0.05, 0.1, ...] array of floats
-- legend: true | false
-
-**SCATTER_PLOT:**
-- figure_size: [width, height]
-- s: number (10-500, marker size)
-- alpha: 0.0 to 1.0
-- color: color name or hex
-- edgecolor: color name or hex
-- grid: true | false
-- x_label: string
-- y_label: string
-
-**HEATMAP:**
-- figure_size: [width, height]
-- cmap: "YlOrRd" | "viridis" | "cool" | "hot" | "Blues"
-- cbar: true | false
-- annot: true | false
-- fmt: ".0f" | ".1f" | ".2f" | "d"
-- x_label: string
-- y_label: string
-
-### RULES:
-1. **MUST match EXACT parameter names** shown above - no variations
-2. **MUST use ONLY supported values** - e.g., marker can ONLY be "o" | "s" | "^" | "x" | "+"
-3. **NO extra parameters** - do NOT include parameters from other components
-4. **NO nested objects** - all configs must be flat key-value pairs
-5. **Return as flat dictionary** with only the parameters that apply to YOUR recommended component
+- 2D relationship between numeric values (NOT categories with strings)
+- User asks "matrix", "cross-tabulation" WITH numeric values
+- Large dataset with two numeric dimensions
+- ALL data must be numeric (int, float) - NO strings, NO object types
+- Include configs: cmap, aspect, interpolation, origin
+- ⚠️ CRITICAL: ONLY recommend HEATMAP if ALL columns are numeric. If ANY column contains strings or objects, use TABLE or another chart type instead.
 
 
 ## Example Analysis
 Query: "Show me project count by status"
 - Columns: status (category), count (numeric)
 - User intent: Compare across categories
-- Recommended: bar_chart (comparing status counts)
-- X-axis: status | Y-axis: count
+- Recommended: bar_chart
+- Configs: {{"color": "steelblue", "alpha": 0.8}}
+(Note: title, xlabel, ylabel are set separately, NOT in configs)
 
 Query: "Show me project trends over time"
 - Columns: month (time), project_count (numeric)
-- User intent: See progression
-- Recommended: line_chart (showing trend)
-- X-axis: month | Y-axis: project_count
+- Recommended: line_chart
+- Configs: {{"marker": "o", "linewidth": 2, "color": "green"}}
+(Note: title, xlabel, ylabel are set separately, NOT in configs)
+
+Query: "Show me market distribution by region"
+- Columns: region (category), percentage (numeric)
+- Recommended: pie_chart
+- Configs: {{"autopct": "%1.1f%%", "startangle": 90}}
+(Note: title is set separately, NOT in configs)
 """
 
 human_message_content = """
