@@ -50,6 +50,6 @@ Thumbs.db # Windows
 
 # Large video files (use external hosting)
 *.mp4
-*.avi
+#*.avi
 *.mov
 *.mkv
