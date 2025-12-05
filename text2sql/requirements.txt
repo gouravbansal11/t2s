@@ -22,6 +22,9 @@ sqlalchemy>=2.0.0     # SQL toolkit and ORM
 pandas>=2.0.0         # for data manipulation and analysis
 psycopg2-binary>=2.9.0
 
+# Chroma Db
+chromadb>=0.4.3
+
 # Optional but recommended
 streamlit>=1.28.0     # for web interface (if building a UI)
 fastapi>=0.104.0      # for API development (if building APIs)

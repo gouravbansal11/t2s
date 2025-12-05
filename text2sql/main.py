@@ -119,19 +119,25 @@ def invoke_t2s_pipeline():
     print("=" * 80 + "\n")
     return result
 
-from services.ui_generator import generate_ui
+from services.ui_generator import generate_ui_async
+from utils.chroma_db import addRecords
 
 def draw_data(state: AgentState):
     # Placeholder for drawing or exporting pipeline results; implement as needed
     data = execute_query(state["generated_sql_query"])
     print(f"Data retrieved from database \n: {data}")
     ui_components_details = state["ui_components_details"]
-    generate_ui(ui_components_details.get("recommended_component"), ui_components_details.get("fields", []),ui_components_details.get("configs", {}), data)
+    generate_ui_async(ui_components_details.get("recommended_component"), ui_components_details.get("fields", []),ui_components_details.get("configs", {}), data)
     
 
 def main():
     final_state = invoke_t2s_pipeline()
     draw_data(state=final_state)
+    response = input("Is Generated UI satisfactory? Press Y to improve it next time.")
+    if(response.strip().lower() == 'y'):
+        addRecords(user_query=final_state.user_query, generated_SQL=final_state.generated_sql_query, domainId=1)
+    else:
+        print("Bye Bye !!!!")
 
 main()
 
