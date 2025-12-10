@@ -44,7 +44,7 @@ def _render_ui_sync(recommended_component, fields, configs, data):
                 fig, ax = plt.subplots()
                 ax.axis('tight')
                 ax.axis('off')
-                ax.table(cellText=data.values(), colLabels=data.columns, **configs)
+                ax.table(cellText=data.values, colLabels=data.columns, **configs)
                 plt.title("Data Table")
                 plt.show()
                 
@@ -55,7 +55,7 @@ def _render_ui_sync(recommended_component, fields, configs, data):
                 fig, ax = plt.subplots()
                 ax.axis('tight')
                 ax.axis('off')
-                ax.table(cellText=data.values(), colLabels=data.columns)
+                ax.table(cellText=data.values, colLabels=data.columns)
                 plt.title("Data Table")
                 plt.show()
         

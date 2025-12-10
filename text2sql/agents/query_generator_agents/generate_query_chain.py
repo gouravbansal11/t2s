@@ -116,6 +116,10 @@ sql_generation_human_prompt = """Based on the following information, generate a 
 **Table Schema & Relationships:**
 {table_schema}
 
+**Similar User Query and the Generated SQL Query from the RAG knowledge base:**
+{rag_context}
+
+
 Generate the SQL query:
 """
 
@@ -124,12 +128,15 @@ sql_task1 = RunnableLambda(lambda x: x["user_query"])
 sql_task2 = RunnableLambda(lambda x: x["selected_columns"])
 sql_task3 = RunnableLambda(lambda x: x["filters"])
 sql_task4 = RunnableLambda(lambda x: x["table_schema"])
+sql_task5 = RunnableLambda(lambda x: x["rag_context"])
+
 
 sql_final_task = RunnableMap({
     "user_query": sql_task1,
     "selected_columns": sql_task2,
     "filters": sql_task3,
-    "table_schema": sql_task4
+    "table_schema": sql_task4,
+    "rag_context": sql_task5
 })
 
 sql_prompt = getPrompt(sql_generation_system_prompt, sql_generation_human_prompt)

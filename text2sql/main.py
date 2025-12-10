@@ -112,12 +112,14 @@ def invoke_t2s_pipeline():
     print("TEXT-TO-SQL CONVERSION PIPELINE")
     print("=" * 80 + "\n")
 
-    result = state_graph_final.invoke(AgentState(user_query=input("Enter the query: ")))
+    user_query_input = input("Enter the query: ")
+    state = AgentState(user_query=user_query_input);
+    state = state_graph_final.invoke(state)
 
     print("\n" + "=" * 80)
-    print(f"PIPELINE EXECUTION COMPLETED. RESULT: {result}")
+    print(f"PIPELINE EXECUTION COMPLETED. RESULT: is {state} type {type(state)}")
     print("=" * 80 + "\n")
-    return result
+    return state
 
 from services.ui_generator import generate_ui_async
 from utils.chroma_db import addRecords
@@ -133,9 +135,10 @@ def draw_data(state: AgentState):
 def main():
     final_state = invoke_t2s_pipeline()
     draw_data(state=final_state)
+    print(f"final State {final_state}")
     response = input("Is Generated UI satisfactory? Press Y to improve it next time.")
     if(response.strip().lower() == 'y'):
-        addRecords(user_query=final_state.user_query, generated_SQL=final_state.generated_sql_query, domainId=1)
+        addRecords(user_query=final_state["user_query"], generated_SQL=final_state["generated_sql_query"], domainId=1)
     else:
         print("Bye Bye !!!!")
 
